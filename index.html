@@ -67,8 +67,8 @@
             }
         };
 
-        const GAME_VERSION = '4.1.0';
-        const LAST_UPDATED = 'January 22, 2026 - 16:50';
+        const GAME_VERSION = '4.3.0';
+        const LAST_UPDATED = 'January 22, 2026 - 17:00';
 
         const emojiPairs = [
           ['😀', '😃'], ['😊', '😌'], ['🙂', '🙃'], ['😐', '😑'],
@@ -593,13 +593,27 @@
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-10 gap-0 bg-gray-100 rounded-xl overflow-hidden" style={{ padding: '0', margin: '0' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '0', padding: '0', margin: '0', backgroundColor: '#f3f4f6', borderRadius: '12px' }}>
                         {grid.map((emoji, index) => (
                           <button
                             key={index}
                             onClick={() => handleClick(index)}
-                            className="aspect-square text-xl hover:bg-yellow-200 transition-colors flex items-center justify-center"
-                            style={{ padding: '0', margin: '0', border: 'none', lineHeight: '1', fontSize: '1.5rem' }}
+                            style={{ 
+                              aspectRatio: '1',
+                              fontSize: '1.5rem',
+                              padding: '0',
+                              margin: '0',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              lineHeight: '1',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#fef08a'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                           >
                             {emoji}
                           </button>
