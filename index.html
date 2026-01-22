@@ -67,8 +67,8 @@
             }
         };
 
-        const GAME_VERSION = '3.9.0';
-        const LAST_UPDATED = 'January 22, 2026 - 16:30';
+        const GAME_VERSION = '4.0.0';
+        const LAST_UPDATED = 'January 22, 2026 - 16:45';
 
         const emojiPairs = [
           ['😀', '😃'], ['😊', '😌'], ['🙂', '🙃'], ['😐', '😑'],
@@ -593,12 +593,13 @@
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-10 gap-0 bg-gray-100 p-0.5 rounded-xl">
+                      <div className="grid grid-cols-10 gap-0 bg-gray-100 p-0 rounded-xl">
                         {grid.map((emoji, index) => (
                           <button
                             key={index}
                             onClick={() => handleClick(index)}
-                            className="aspect-square text-2xl hover:bg-yellow-200 transition-colors flex items-center justify-center p-0 m-0"
+                            className="aspect-square text-2xl hover:bg-yellow-200 transition-colors flex items-center justify-center p-0 m-0 border-0"
+                            style={{ lineHeight: '1' }}
                           >
                             {emoji}
                           </button>
