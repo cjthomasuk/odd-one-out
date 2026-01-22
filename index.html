@@ -67,8 +67,8 @@
             }
         };
 
-        const GAME_VERSION = '4.3.0';
-        const LAST_UPDATED = 'January 22, 2026 - 17:00';
+        const GAME_VERSION = '4.4.0';
+        const LAST_UPDATED = 'January 22, 2026 - 17:05';
 
         const emojiPairs = [
           ['😀', '😃'], ['😊', '😌'], ['🙂', '🙃'], ['😐', '😑'],
@@ -593,7 +593,17 @@
                         </div>
                       </div>
                       
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '0', padding: '0', margin: '0', backgroundColor: '#f3f4f6', borderRadius: '12px' }}>
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(10, 1fr)', 
+                        gap: '0', 
+                        padding: '8px', 
+                        margin: '0 auto',
+                        backgroundColor: '#f3f4f6', 
+                        borderRadius: '12px',
+                        maxWidth: '500px',
+                        width: '100%'
+                      }}>
                         {grid.map((emoji, index) => (
                           <button
                             key={index}
