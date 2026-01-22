@@ -8,8 +8,6 @@
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
@@ -19,7 +17,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // Initialize Firebase
         const firebaseConfig = {
           apiKey: "AIzaSyCIz8Nja1unTQteI8eV62sSBW1dW49Ezhg",
           authDomain: "odd-one-out-game-f39ab.firebaseapp.com",
@@ -34,18 +31,15 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
-        // Storage API using both localStorage and Firebase
         const storage = {
             get: async (key, shared = false) => {
                 if (shared) {
-                    // Get from Firebase
                     const snapshot = await database.ref(key).once('value');
                     if (snapshot.exists()) {
                         return { key, value: snapshot.val(), shared };
                     }
                     throw new Error('Key not found');
                 } else {
-                    // Get from localStorage
                     const value = localStorage.getItem(key);
                     if (value === null) {
                         throw new Error('Key not found');
@@ -55,29 +49,25 @@
             },
             set: async (key, value, shared = false) => {
                 if (shared) {
-                    // Set in Firebase
                     await database.ref(key).set(value);
                     return { key, value, shared };
                 } else {
-                    // Set in localStorage
                     localStorage.setItem(key, value);
                     return { key, value, shared };
                 }
             },
             delete: async (key, shared = false) => {
                 if (shared) {
-                    // Delete from Firebase
                     await database.ref(key).remove();
                     return { key, deleted: true, shared };
                 } else {
-                    // Delete from localStorage
                     localStorage.removeItem(key);
                     return { key, deleted: true, shared };
                 }
             }
         };
 
-        const GAME_VERSION = '3.0.0';
+        const GAME_VERSION = '3.1.0';
 
         const emojiPairs = [
           ['😀', '😃'], ['😊', '😌'], ['🙂', '🙃'], ['😐', '😑'],
@@ -129,7 +119,6 @@
           const [currentTime, setCurrentTime] = useState(0);
           const [leaderboard, setLeaderboard] = useState([]);
           const [lastScore, setLastScore] = useState(null);
-          const [showScoreModal, setShowScoreModal] = useState(false);
           const [currentUser, setCurrentUser] = useState(null);
           const [showLogin, setShowLogin] = useState(true);
           const [loginName, setLoginName] = useState('');
@@ -144,7 +133,6 @@
             loadLeaderboard();
             checkLoggedInUser();
             
-            // Listen for real-time leaderboard updates from Firebase
             const leaderboardRef = database.ref('charlie-isla-leaderboard-v2');
             leaderboardRef.on('value', (snapshot) => {
               if (snapshot.exists()) {
@@ -206,8 +194,6 @@
           };
 
           const handleLogin = async () => {
-            console.log('handleLogin called, isRegistering:', isRegistering);
-            
             if (!loginName.trim() || !loginPassword.trim()) {
               alert('Please enter both username and password');
               return;
@@ -215,27 +201,21 @@
 
             try {
               const userKey = `charlie-isla-user-${loginName.trim().toLowerCase()}`;
-              console.log('Looking for user with key:', userKey);
               
               let result;
               try {
                 result = await storage.get(userKey, true);
-                console.log('Storage get result:', result);
               } catch (e) {
-                console.log('User does not exist yet');
                 result = null;
               }
 
               if (isRegistering) {
-                console.log('Registration flow started');
                 if (result) {
                   alert('Username already exists! Please choose a different name or login.');
                   return;
                 }
                 
                 const newUser = { name: loginName.trim(), password: loginPassword };
-                console.log('Creating new user:', newUser);
-                
                 await storage.set(userKey, JSON.stringify(newUser), true);
                 await storage.set('charlie-isla-current-user', JSON.stringify(newUser), false);
                 
@@ -243,9 +223,7 @@
                 setShowLogin(false);
                 setLoginName('');
                 setLoginPassword('');
-                console.log('User registered and logged in successfully');
               } else {
-                console.log('Login flow started');
                 if (!result) {
                   alert('User not found! Please register first.');
                   return;
@@ -262,7 +240,6 @@
                 setShowLogin(false);
                 setLoginName('');
                 setLoginPassword('');
-                console.log('User logged in successfully');
               }
             } catch (error) {
               console.error('Login error:', error);
@@ -346,11 +323,19 @@
             setGameReady(true);
             setGameActive(false);
             setCurrentTime(0);
-            setShowScoreModal(false);
             setLastScore(null);
           };
 
           const startGame = () => {
+            const pair = emojiPairs[Math.floor(Math.random() * emojiPairs.length)];
+            const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
+            
+            const newGrid = Array(100).fill(normal);
+            const randomOddIndex = Math.floor(Math.random() * 100);
+            newGrid[randomOddIndex] = odd;
+            
+            setGrid(newGrid);
+            setOddIndex(randomOddIndex);
             setGameActive(true);
             setStartTime(Date.now());
           };
@@ -363,16 +348,17 @@
               const finalTime = Date.now() - startTime;
               setCurrentTime(finalTime);
               setLastScore(finalTime);
-              setShowScoreModal(true);
+              
+              submitScoreAndContinue(finalTime);
             }
           };
 
-          const submitScore = async () => {
-            if (!currentUser || !lastScore) return;
+          const submitScoreAndContinue = async (finalTime) => {
+            if (!currentUser) return;
             
             const newEntry = {
               name: currentUser.name,
-              time: lastScore,
+              time: finalTime,
               date: new Date().toISOString()
             };
             
@@ -395,12 +381,12 @@
             
             if (position <= 10) {
               const positionEmoji = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : '🏆';
-              alert(`${positionEmoji} Congratulations! You're in position #${position} on the leaderboard!`);
+              alert(`${positionEmoji} Great job! You're #${position} with ${formatTime(finalTime)}!`);
             } else {
-              alert(`Good effort! You're in position #${position}. Keep trying to break into the top 10!`);
+              alert(`Good effort! Time: ${formatTime(finalTime)}. Keep trying!`);
             }
             
-            setShowScoreModal(false);
+            prepareGame();
           };
 
           const formatTime = (ms) => {
@@ -523,22 +509,28 @@
                     </p>
                     <button
                       onClick={prepareGame}
-                      className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white text-2xl font-bold py-4 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                      className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white text-2xl font-bold py-4 rounded-lg hover:scale-105 transition-transform shadow-lg mb-3"
                     >
                       Start New Game 🎮
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full bg-gray-500 text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                      Login as Different User
                     </button>
                   </div>
                 </div>
               )}
 
-              {gameReady && !gameActive && !showScoreModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              {gameReady && !gameActive && (
+                <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
                     <h2 className="text-3xl font-bold text-green-600 mb-4 text-center">
                       Ready to go! 🚀
                     </h2>
                     <p className="text-lg text-gray-700 mb-6 text-center">
-                      Click the button to start the timer and find the odd one out!
+                      Click the button to reveal the emojis and start the timer!
                     </p>
                     <button
                       onClick={startGame}
@@ -550,37 +542,15 @@
                 </div>
               )}
 
-              {showScoreModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                    <h2 className="text-4xl font-bold text-green-600 mb-2 text-center">
-                      🎉 Amazing! 🎉
-                    </h2>
-                    <p className="text-2xl text-gray-700 mb-6 text-center">
-                      You found it in {formatTime(lastScore)}!
-                    </p>
-                    <div className="space-y-3">
-                      <button
-                        onClick={submitScore}
-                        className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
-                      >
-                        Submit to Leaderboard 🏆
-                      </button>
-                      <button
-                        onClick={prepareGame}
-                        className="w-full bg-purple-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
-                      >
-                        Start New Game 🎮
-                      </button>
-                    </div>
+              <div className="max-w-6xl mx-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h1 className="text-5xl font-bold text-white drop-shadow-lg">
+                    🔍 Charlie & Isla - Odd One Out 🔍
+                  </h1>
+                  <div className="text-2xl font-bold text-white bg-white bg-opacity-20 backdrop-blur-sm px-6 py-3 rounded-full">
+                    👤 {currentUser?.name}
                   </div>
                 </div>
-              )}
-
-              <div className="max-w-6xl mx-auto">
-                <h1 className="text-5xl font-bold text-white text-center mb-2 drop-shadow-lg">
-                  🔍 Charlie & Isla - Odd One Out 🔍
-                </h1>
                 <p className="text-xl text-white text-center mb-6">Find the different emoji as fast as you can!</p>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -609,7 +579,7 @@
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-10 gap-1 bg-gray-100 p-2 rounded-xl">
+                      <div className="grid grid-cols-10 gap-0.5 bg-gray-100 p-2 rounded-xl">
                         {grid.map((emoji, index) => (
                           <button
                             key={index}
