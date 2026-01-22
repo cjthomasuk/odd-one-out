@@ -599,3 +599,60 @@
                             key={index}
                             onClick={() => handleClick(index)}
                             className="aspect-square text-2xl hover:bg-yellow-200 transition-colors flex items-center justify-center p-0 m-0"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-6 shadow-2xl">
+                    <h2 className="text-2xl font-bold text-purple-600 mb-4 flex items-center gap-2">
+                      <TrophyIcon />
+                      Leaderboard
+                    </h2>
+                    <p className="text-xs text-gray-500 mb-3">(Top 5 times per player)</p>
+                    {leaderboard.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">No scores yet. Be the first!</p>
+                    ) : (
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {leaderboard.slice(0, 20).map((entry, index) => (
+                          <div
+                            key={index}
+                            className={`flex justify-between items-center p-3 rounded-lg ${
+                              index === 0 ? 'bg-yellow-100' : index === 1 ? 'bg-gray-100' : index === 2 ? 'bg-orange-100' : 'bg-gray-50'
+                            } ${entry.name === currentUser?.name ? 'ring-2 ring-purple-500' : ''}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl font-bold text-gray-600 w-6">
+                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
+                              </span>
+                              <span className="font-semibold text-gray-800">{entry.name}</span>
+                            </div>
+                            <span className="font-mono font-bold text-purple-600">
+                              {formatTime(entry.time)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 text-white text-center">
+                  <p className="text-sm">💡 Tip: The different emoji is very similar but not identical. Look carefully!</p>
+                  <p className="text-xs mt-1 opacity-75">Logged in as: {currentUser?.name}</p>
+                  <div className="mt-3 pt-3 border-t border-white border-opacity-30">
+                    <p className="text-xs opacity-60">v{GAME_VERSION} • Updated: {LAST_UPDATED}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<OddOneOutGame />, document.getElementById('root'));
+    </script>
+</body>
+</html>
