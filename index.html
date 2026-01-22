@@ -67,8 +67,8 @@
             }
         };
 
-        const GAME_VERSION = '3.2.0';
-        const LAST_UPDATED = 'January 22, 2026 - 15:30';
+        const GAME_VERSION = '3.9.0';
+        const LAST_UPDATED = 'January 22, 2026 - 16:30';
 
         const emojiPairs = [
           ['😀', '😃'], ['😊', '😌'], ['🙂', '🙃'], ['😐', '😑'],
@@ -82,7 +82,25 @@
           ['💛', '💚'], ['💙', '💜'], ['🧡', '❤️'], ['💗', '💖'],
           ['🔳', '⬜'], ['🔲', '⬛'], ['▪️', '◾'], ['▫️', '◽'],
           ['◼️', '⬛'], ['◻️', '⬜'], ['🟥', '🔴'], ['🟦', '🔵'],
-          ['🟧', '🟠'], ['⚡', '💥'], ['🌈', '🌅'], ['🔆', '🔅']
+          ['🟧', '🟠'], ['⚡', '💥'], ['🌈', '🌅'], ['🔆', '🔅'],
+          ['😅', '😂'], ['🤣', '😆'], ['😇', '😊'], ['😉', '😊'],
+          ['😗', '😙'], ['😚', '😘'], ['🥰', '😍'], ['😝', '😛'],
+          ['😜', '😋'], ['🤪', '😜'], ['🤓', '😎'], ['🧐', '🤓'],
+          ['😕', '😟'], ['🙁', '☹️'], ['😮', '😯'], ['😦', '😧'],
+          ['😨', '😰'], ['😢', '😥'], ['😭', '😢'], ['😤', '😠'],
+          ['😡', '🤬'], ['🤯', '😱'], ['😳', '😲'], ['🥵', '🥶'],
+          ['😱', '😨'], ['🤗', '🤭'], ['🤫', '🤥'], ['😑', '😐'],
+          ['😬', '😁'], ['🙄', '😒'], ['😪', '😴'], ['🤤', '😴'],
+          ['🌝', '🌚'], ['🌛', '🌜'], ['🌞', '☀️'], ['⭐', '✨'],
+          ['🌟', '💫'], ['✨', '🌟'], ['💥', '💢'], ['💯', '💢'],
+          ['🔥', '💥'], ['⚡', '🔥'], ['💤', '💨'], ['💨', '💦'],
+          ['💧', '💦'], ['💦', '💧'], ['🫧', '💦'], ['🌊', '💦'],
+          ['🟠', '🔶'], ['🟡', '🟨'], ['🟢', '🟩'], ['🔵', '🟦'],
+          ['🟣', '🟪'], ['⚫', '⬛'], ['⚪', '⬜'], ['🟤', '🟫'],
+          ['🔴', '🟥'], ['🟠', '🟧'], ['🔶', '🧡'], ['◾', '◼️'],
+          ['◽', '◻️'], ['▪️', '⬛'], ['▫️', '⬜'], ['🔘', '⚫'],
+          ['🔳', '◻️'], ['🔲', '◼️'], ['🟥', '🔺'], ['🟧', '🔶'],
+          ['🟨', '🔸'], ['🟩', '🔷'], ['🟦', '🔹'], ['🟪', '🔷']
         ];
 
         const ClockIcon = () => (
@@ -119,7 +137,6 @@
           const [startTime, setStartTime] = useState(null);
           const [currentTime, setCurrentTime] = useState(0);
           const [leaderboard, setLeaderboard] = useState([]);
-          const [lastScore, setLastScore] = useState(null);
           const [currentUser, setCurrentUser] = useState(null);
           const [showLogin, setShowLogin] = useState(true);
           const [loginName, setLoginName] = useState('');
@@ -127,7 +144,6 @@
           const [isRegistering, setIsRegistering] = useState(false);
           const [isResetting, setIsResetting] = useState(false);
           const [newPassword, setNewPassword] = useState('');
-          const [updateAvailable, setUpdateAvailable] = useState(false);
 
           useEffect(() => {
             loadLeaderboard();
@@ -155,26 +171,6 @@
             }
             return () => clearInterval(interval);
           }, [gameActive, startTime]);
-
-          const checkVersion = async () => {
-            try {
-              const result = await storage.get('charlie-isla-game-version', true);
-              if (result) {
-                const storedVersion = result.value;
-                if (storedVersion !== GAME_VERSION) {
-                  setUpdateAvailable(true);
-                }
-              } else {
-                await storage.set('charlie-isla-game-version', GAME_VERSION, true);
-              }
-            } catch (error) {
-              try {
-                await storage.set('charlie-isla-game-version', GAME_VERSION, true);
-              } catch (e) {
-                console.log('Could not set version');
-              }
-            }
-          };
 
           const checkLoggedInUser = async () => {
             try {
@@ -318,7 +314,6 @@
             setGameReady(true);
             setGameActive(false);
             setCurrentTime(0);
-            setLastScore(null);
           };
 
           const startGame = () => {
@@ -342,7 +337,6 @@
               setGameActive(false);
               const finalTime = Date.now() - startTime;
               setCurrentTime(finalTime);
-              setLastScore(finalTime);
               
               submitScoreAndContinue(finalTime);
             }
@@ -357,7 +351,6 @@
               date: new Date().toISOString()
             };
             
-            // Get top 5 times per player
             const playerTimes = {};
             [...leaderboard, newEntry].forEach(entry => {
               if (!playerTimes[entry.name]) {
@@ -366,18 +359,16 @@
               playerTimes[entry.name].push(entry);
             });
             
-            // Sort each player's times and keep top 5
             Object.keys(playerTimes).forEach(name => {
               playerTimes[name] = playerTimes[name]
                 .sort((a, b) => a.time - b.time)
                 .slice(0, 5);
             });
             
-            // Flatten back to array and sort by time
             const updatedLeaderboard = Object.values(playerTimes)
               .flat()
               .sort((a, b) => a.time - b.time)
-              .slice(0, 50); // Keep top 50 overall entries
+              .slice(0, 50);
             
             const userEntries = updatedLeaderboard.filter(entry => entry.name === currentUser.name);
             const bestPosition = updatedLeaderboard.findIndex(entry => 
@@ -509,7 +500,7 @@
           }
 
           return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4 animate-gradient-x" style={{
+            <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4" style={{
               backgroundSize: '200% 200%',
               animation: 'gradient 15s ease infinite'
             }}>
@@ -608,60 +599,3 @@
                             key={index}
                             onClick={() => handleClick(index)}
                             className="aspect-square text-2xl hover:bg-yellow-200 transition-colors flex items-center justify-center p-0 m-0"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-2xl p-6 shadow-2xl">
-                    <h2 className="text-2xl font-bold text-purple-600 mb-4 flex items-center gap-2">
-                      <TrophyIcon />
-                      Leaderboard
-                    </h2>
-                    <p className="text-xs text-gray-500 mb-3">(Top 5 times per player)</p>
-                    {leaderboard.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8">No scores yet. Be the first!</p>
-                    ) : (
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {leaderboard.slice(0, 20).map((entry, index) => (
-                          <div
-                            key={index}
-                            className={`flex justify-between items-center p-3 rounded-lg ${
-                              index === 0 ? 'bg-yellow-100' : index === 1 ? 'bg-gray-100' : index === 2 ? 'bg-orange-100' : 'bg-gray-50'
-                            } ${entry.name === currentUser?.name ? 'ring-2 ring-purple-500' : ''}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl font-bold text-gray-600 w-6">
-                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
-                              </span>
-                              <span className="font-semibold text-gray-800">{entry.name}</span>
-                            </div>
-                            <span className="font-mono font-bold text-purple-600">
-                              {formatTime(entry.time)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 text-white text-center">
-                  <p className="text-sm">💡 Tip: The different emoji is very similar but not identical. Look carefully!</p>
-                  <p className="text-xs mt-1 opacity-75">Logged in as: {currentUser?.name}</p>
-                  <div className="mt-3 pt-3 border-t border-white border-opacity-30">
-                    <p className="text-xs opacity-60">v{GAME_VERSION} • Updated: {LAST_UPDATED}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        };
-
-        ReactDOM.render(<OddOneOutGame />, document.getElementById('root'));
-    </script>
-</body>
-</html>
