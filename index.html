@@ -130,7 +130,6 @@
           const [updateAvailable, setUpdateAvailable] = useState(false);
 
           useEffect(() => {
-            checkVersion();
             loadLeaderboard();
             checkLoggedInUser();
             
@@ -142,12 +141,7 @@
               }
             });
             
-            const interval = setInterval(() => {
-              checkVersion();
-            }, 5000);
-            
             return () => {
-              clearInterval(interval);
               leaderboardRef.off();
             };
           }, []);
@@ -526,11 +520,6 @@
                   100% { background-position: 0% 50%; }
                 }
               `}</style>
-              {updateAvailable && (
-                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-yellow-400 text-black px-6 py-3 rounded-full shadow-2xl font-bold animate-bounce">
-                  🔄 New version available! Please refresh the page (F5) to update
-                </div>
-              )}
               
               {!gameReady && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
