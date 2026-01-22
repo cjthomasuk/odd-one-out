@@ -613,12 +613,12 @@
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-10 gap-0 bg-gray-100 p-1 rounded-xl">
+                      <div className="grid grid-cols-10 gap-0 bg-gray-100 p-0.5 rounded-xl">
                         {grid.map((emoji, index) => (
                           <button
                             key={index}
                             onClick={() => handleClick(index)}
-                            className="aspect-square text-2xl hover:bg-yellow-200 transition-colors flex items-center justify-center"
+                            className="aspect-square text-2xl hover:bg-yellow-200 transition-colors flex items-center justify-center p-0 m-0"
                           >
                             {emoji}
                           </button>
