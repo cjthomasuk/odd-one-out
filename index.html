@@ -411,7 +411,17 @@
 
           if (showLogin) {
             return (
-              <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+              <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4" style={{
+                backgroundSize: '200% 200%',
+                animation: 'gradient 15s ease infinite'
+              }}>
+                <style>{`
+                  @keyframes gradient {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                  }
+                `}</style>
                 <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
                   <h1 className="text-4xl font-bold text-purple-600 mb-6 text-center">
                     🔍 Charlie & Isla<br/>Odd One Out 🔍
@@ -505,7 +515,17 @@
           }
 
           return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
+            <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4 animate-gradient-x" style={{
+              backgroundSize: '200% 200%',
+              animation: 'gradient 15s ease infinite'
+            }}>
+              <style>{`
+                @keyframes gradient {
+                  0% { background-position: 0% 50%; }
+                  50% { background-position: 100% 50%; }
+                  100% { background-position: 0% 50%; }
+                }
+              `}</style>
               {updateAvailable && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-yellow-400 text-black px-6 py-3 rounded-full shadow-2xl font-bold animate-bounce">
                   🔄 New version available! Please refresh the page (F5) to update
@@ -558,16 +578,11 @@
 
               <div className="max-w-6xl mx-auto">
                 <div className="flex justify-between items-center mb-4">
-                  <h1 className="text-5xl font-bold text-white drop-shadow-lg">
+                  <h1 className="text-5xl font-black text-white drop-shadow-lg" style={{ fontFamily: '"Comic Sans MS", "Marker Felt", "Chalkboard SE", fantasy', textShadow: '3px 3px 0px rgba(0,0,0,0.3), -1px -1px 0px rgba(255,255,255,0.3)' }}>
                     🔍 Charlie & Isla - Odd One Out 🔍
                   </h1>
                   <div className="text-2xl font-bold text-white bg-white bg-opacity-20 backdrop-blur-sm px-6 py-3 rounded-full">
                     👤 {currentUser?.name}
-                  </div>
-                </div>
-                <div className="flex justify-center mb-2">
-                  <div className="text-sm text-white bg-white bg-opacity-10 backdrop-blur-sm px-4 py-1 rounded-full">
-                    v{GAME_VERSION} • Updated: {LAST_UPDATED}
                   </div>
                 </div>
                 <p className="text-xl text-white text-center mb-6">Find the different emoji as fast as you can!</p>
@@ -598,12 +613,12 @@
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-10 gap-1 bg-gray-100 p-2 rounded-xl">
+                      <div className="grid grid-cols-10 gap-0 bg-gray-100 p-1 rounded-xl">
                         {grid.map((emoji, index) => (
                           <button
                             key={index}
                             onClick={() => handleClick(index)}
-                            className="aspect-square text-2xl hover:bg-yellow-200 rounded transition-colors flex items-center justify-center"
+                            className="aspect-square text-2xl hover:bg-yellow-200 transition-colors flex items-center justify-center"
                           >
                             {emoji}
                           </button>
@@ -648,6 +663,9 @@
                 <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 text-white text-center">
                   <p className="text-sm">💡 Tip: The different emoji is very similar but not identical. Look carefully!</p>
                   <p className="text-xs mt-1 opacity-75">Logged in as: {currentUser?.name}</p>
+                  <div className="mt-3 pt-3 border-t border-white border-opacity-30">
+                    <p className="text-xs opacity-60">v{GAME_VERSION} • Updated: {LAST_UPDATED}</p>
+                  </div>
                 </div>
               </div>
             </div>
