@@ -1,3 +1,7 @@
+Complete HTML Code for GitHub
+Copy everything below this line and paste it into your index.html file on GitHub:
+
+html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -362,28 +366,41 @@
               date: new Date().toISOString()
             };
             
+            // Get top 5 times per player
             const playerTimes = {};
             [...leaderboard, newEntry].forEach(entry => {
-              if (!playerTimes[entry.name] || entry.time < playerTimes[entry.name].time) {
-                playerTimes[entry.name] = entry;
+              if (!playerTimes[entry.name]) {
+                playerTimes[entry.name] = [];
               }
+              playerTimes[entry.name].push(entry);
             });
             
+            // Sort each player's times and keep top 5
+            Object.keys(playerTimes).forEach(name => {
+              playerTimes[name] = playerTimes[name]
+                .sort((a, b) => a.time - b.time)
+                .slice(0, 5);
+            });
+            
+            // Flatten back to array and sort by time
             const updatedLeaderboard = Object.values(playerTimes)
-              .sort((a, b) => a.time - b.time);
+              .flat()
+              .sort((a, b) => a.time - b.time)
+              .slice(0, 50); // Keep top 50 overall entries
             
-            const position = updatedLeaderboard.findIndex(entry => entry.name === currentUser.name) + 1;
+            const userEntries = updatedLeaderboard.filter(entry => entry.name === currentUser.name);
+            const bestPosition = updatedLeaderboard.findIndex(entry => 
+              entry.name === currentUser.name && entry.time === userEntries[0].time
+            ) + 1;
             
-            const finalLeaderboard = updatedLeaderboard.slice(0, 10);
+            setLeaderboard(updatedLeaderboard);
+            await saveLeaderboard(updatedLeaderboard);
             
-            setLeaderboard(finalLeaderboard);
-            await saveLeaderboard(finalLeaderboard);
-            
-            if (position <= 10) {
-              const positionEmoji = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : '🏆';
-              alert(`${positionEmoji} Great job! You're #${position} with ${formatTime(finalTime)}!`);
+            if (bestPosition <= 10) {
+              const positionEmoji = bestPosition === 1 ? '🥇' : bestPosition === 2 ? '🥈' : bestPosition === 3 ? '🥉' : '🏆';
+              alert(`${positionEmoji} Great job! Your best time is #${bestPosition} with ${formatTime(userEntries[0].time)}!`);
             } else {
-              alert(`Good effort! Time: ${formatTime(finalTime)}. Keep trying!`);
+              alert(`Good effort! Time: ${formatTime(finalTime)}. Your best: ${formatTime(userEntries[0].time)}`);
             }
             
             prepareGame();
@@ -579,7 +596,7 @@
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-10 gap-0.5 bg-gray-100 p-2 rounded-xl">
+                      <div className="grid grid-cols-10 gap-1 bg-gray-100 p-2 rounded-xl">
                         {grid.map((emoji, index) => (
                           <button
                             key={index}
@@ -598,12 +615,12 @@
                       <TrophyIcon />
                       Leaderboard
                     </h2>
-                    <p className="text-xs text-gray-500 mb-3">(Best time per player - Live Global)</p>
+                    <p className="text-xs text-gray-500 mb-3">(Top 5 times per player)</p>
                     {leaderboard.length === 0 ? (
                       <p className="text-gray-500 text-center py-8">No scores yet. Be the first!</p>
                     ) : (
-                      <div className="space-y-2">
-                        {leaderboard.map((entry, index) => (
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {leaderboard.slice(0, 20).map((entry, index) => (
                           <div
                             key={index}
                             className={`flex justify-between items-center p-3 rounded-lg ${
@@ -639,3 +656,13 @@
     </script>
 </body>
 </html>
+Instructions to Upload:
+Go to your GitHub repository
+If you already have an index.html file, click on it and then click the pencil icon to edit it
+Delete all the old code
+Copy EVERYTHING from the code block above (starting with <!DOCTYPE html>)
+Paste it into GitHub
+Scroll down and click "Commit changes"
+Wait 1-2 minutes, then visit your GitHub Pages URL
+The game will work perfectly on GitHub! 🎮
+
