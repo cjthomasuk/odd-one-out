@@ -3,37 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Charlie & Isla - Odd One Out</title>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Admin Dashboard - Odd One Out</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100">
     <div id="root"></div>
     
-    <script type="text/babel">
-        // Wait for Firebase to be ready with timeout
-        let firebaseCheckCount = 0;
-        const MAX_FIREBASE_CHECKS = 50; // 5 seconds max wait
+    <script>
+        const ADMIN_VERSION = '1.0.0';
+        const ADMIN_PASSWORD = "charlie-isla-admin-2026"; // Change this to your secure password
         
-        function initializeApp() {
-          if (typeof firebase === 'undefined') {
-            firebaseCheckCount++;
-            if (firebaseCheckCount >= MAX_FIREBASE_CHECKS) {
-              console.error('Firebase failed to load. Please refresh the page.');
-              alert('Failed to load game resources. Please refresh the page.');
-              return;
-            }
-            setTimeout(initializeApp, 100);
-            return;
-          }
-          
-          const { useState, useEffect } = React;
-          
-          const firebaseConfig = {
+        // Initialize Firebase
+        const firebaseConfig = {
             apiKey: "AIzaSyCIz8Nja1unTQteI8eV62sSBW1dW49Ezhg",
             authDomain: "odd-one-out-game-f39ab.firebaseapp.com",
             databaseURL: "https://odd-one-out-game-f39ab-default-rtdb.europe-west1.firebasedatabase.app",
@@ -42,18 +25,14 @@
             messagingSenderId: "1011236518991",
             appId: "1:1011236518991:web:10e0936a8069bcb57ebe3a",
             measurementId: "G-66NJNJJ52D"
-          };
+        };
 
-          try {
-            if (!firebase.apps.length) {
-              firebase.initializeApp(firebaseConfig);
-            }
-          } catch (error) {
-            console.error('Firebase initialization error:', error);
-          }
-          
-          const database = firebase.database();
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
         
+        // Storage wrapper
         const storage = {
             get: async (key, shared = false) => {
                 if (shared) {
@@ -69,1410 +48,451 @@
                     }
                     return { key, value, shared };
                 }
-            },
-            set: async (key, value, shared = false) => {
-                if (shared) {
-                    await database.ref(key).set(value);
-                    return { key, value, shared };
-                } else {
-                    localStorage.setItem(key, value);
-                    return { key, value, shared };
-                }
-            },
-            delete: async (key, shared = false) => {
-                if (shared) {
-                    await database.ref(key).remove();
-                    return { key, deleted: true, shared };
-                } else {
-                    localStorage.removeItem(key);
-                    return { key, deleted: true, shared };
-                }
             }
         };
 
-        const GAME_VERSION = '6.2.0';
-        const LAST_UPDATED = 'January 25, 2026 - Smart Emoji Selection';
+        let isAuthenticated = false;
+        let allData = {
+            users: [],
+            leaderboards: {},
+            stats: {}
+        };
+        
+        let activeTab = 'overview'; // Track active tab
 
-        // Easy & Normal - All pairs including color differences
+        // Emoji databases from the game
         const easyNormalPairs = [
-          // Similar smiling faces
           ['😀', '😃'], ['😃', '😄'], ['😄', '😁'], ['😁', '😀'],
           ['😊', '☺️'], ['☺️', '🙂'], ['🙂', '😊'], 
-          
-          // Neutral/serious faces
           ['😐', '😑'], ['😑', '😶'], ['😶', '🤐'], ['🤐', '😐'],
-          
-          // Confused/thinking faces
           ['🤔', '🤨'], ['🤨', '🧐'], ['🧐', '🤓'], ['🤓', '😎'], ['😎', '🤔'],
-          
-          // Upside down
           ['🙂', '🙃'], ['🙃', '🙂'],
-          
-          // Colored hearts - EASY because color is obvious
           ['💛', '💚'], ['💚', '💙'], ['💙', '💜'], ['💜', '🧡'], ['🧡', '❤️'],
           ['❤️', '💛'], ['💖', '💗'], ['💗', '💕'], ['💕', '💓'], ['💓', '💖'],
           ['🩷', '🩵'], ['🩵', '🤍'], ['🤍', '🖤'], ['🖤', '🩷'],
-          
-          // Geometric shapes - EASY because color is obvious
           ['🔴', '🟠'], ['🟠', '🟡'], ['🟡', '🟢'], ['🟢', '🔵'], ['🔵', '🟣'],
           ['🟣', '🟤'], ['🟤', '⚫'], ['⚫', '⚪'], ['⚪', '🔴'],
-          
-          // Squares - EASY because color is obvious
           ['🟥', '🟧'], ['🟧', '🟨'], ['🟨', '🟩'], ['🟩', '🟦'], ['🟦', '🟪'],
           ['🟪', '🟫'], ['🟫', '⬛'], ['⬛', '⬜'], ['⬜', '🟥'],
-          
-          // Slightly different smiles
           ['😏', '😒'], ['😒', '🙄'], ['🙄', '😏'],
           ['😬', '😁'], ['😁', '😆'], ['😆', '😅'], ['😅', '😂'], ['😂', '🤣'],
-          
-          // Sleepy faces
           ['😴', '😪'], ['😪', '🥱'], ['🥱', '😮'], ['😮', '😯'], ['😯', '😲'],
-          
-          // Surprised/concerned
           ['😳', '😦'], ['😦', '😧'], ['😧', '😨'], ['😨', '😰'], ['😰', '😳'],
-          
-          // Quiet/secret faces
           ['🤐', '🤫'], ['🤫', '🤭'], ['🤭', '🤥'], ['🤥', '🤐'],
-          
-          // Sad faces
           ['😢', '😥'], ['😥', '😭'], ['😭', '😢'],
           ['🙁', '☹️'], ['☹️', '😕'], ['😕', '😟'], ['😟', '🙁'],
-          
-          // Angry faces
           ['😤', '😠'], ['😠', '😡'], ['😡', '🤬'], ['🤬', '😤'],
-          
-          // Love faces
           ['😗', '😙'], ['😙', '😚'], ['😚', '😘'], ['😘', '😗'],
           ['🥰', '😍'], ['😍', '🤩'], ['🤩', '🥰'],
-          
-          // Playful faces
           ['😝', '😛'], ['😛', '😜'], ['😜', '😋'], ['😋', '😝'],
           ['🤪', '😜'], ['😜', '🤪'],
-          
-          // Cool/smart faces
           ['🤓', '😎'], ['😎', '🧐'], ['🧐', '🤓'],
-          
-          // Hot/cold
           ['🥵', '🥶'], ['🥶', '🥵'],
-          
-          // Extreme reactions
           ['🤯', '😱'], ['😱', '😨'], ['😨', '🤯'],
-          
-          // Friendly gestures
           ['🤗', '🤭'], ['🤭', '🤗'],
-          
-          // Additional subtle differences
           ['😇', '😊'], ['😊', '😉'], ['😉', '😇']
         ];
 
-        // Hard & Insane - NO color-only differences, only shape/expression variations
         const hardInsanePairs = [
-          // Similar smiling faces - extremely tricky!
           ['😀', '😃'], ['😃', '😄'], ['😄', '😁'], ['😁', '😀'],
           ['😊', '☺️'], ['☺️', '🙂'], ['🙂', '😊'], 
-          
-          // Neutral/serious faces - very subtle
           ['😐', '😑'], ['😑', '😶'], ['😶', '🤐'], ['🤐', '😐'],
-          
-          // Confused/thinking faces
           ['🤔', '🤨'], ['🤨', '🧐'], ['🧐', '🤓'], ['🤓', '😎'], ['😎', '🤔'],
-          
-          // Upside down and variations
           ['🙂', '🙃'], ['🙃', '🙂'],
-          
-          // Star variations - very similar (shape, not just color)
           ['⭐', '🌟'], ['🌟', '✨'], ['✨', '💫'], ['💫', '⭐'],
-          
-          // Moon phases - shape differences
           ['🌕', '🌝'], ['🌝', '🌚'], ['🌚', '🌑'], 
           ['🌙', '🌛'], ['🌛', '🌜'], ['🌜', '🌙'],
-          
-          // Sun variations - shape differences
           ['☀️', '🌞'], ['🌞', '🌤️'], ['🌤️', '⛅'], ['⛅', '🌥️'], ['🌥️', '☀️'],
-          
-          // Small geometric shapes - black/white variations (not just color)
           ['◾', '◼️'], ['◼️', '⬛'], ['⬛', '▪️'], ['▪️', '◾'],
           ['◽', '◻️'], ['◻️', '⬜'], ['⬜', '▫️'], ['▫️', '◽'],
-          
-          // Circles and dots - only same-color style differences (removed black/white contrast)
           ['🔘', '⚫'], ['⚪', '⭕'],
-          
-          // Boxes - subtle differences
           ['🔳', '◻️'], ['◻️', '⬜'], ['🔲', '◼️'], ['◼️', '⬛'],
-          
-          // Slightly different smiles
           ['😏', '😒'], ['😒', '🙄'], ['🙄', '😏'],
           ['😬', '😁'], ['😁', '😆'], ['😆', '😅'], ['😅', '😂'], ['😂', '🤣'],
-          
-          // Sleepy faces
           ['😴', '😪'], ['😪', '🥱'], ['🥱', '😮'], ['😮', '😯'], ['😯', '😲'],
-          
-          // Surprised/concerned
           ['😳', '😦'], ['😦', '😧'], ['😧', '😨'], ['😨', '😰'], ['😰', '😳'],
-          
-          // Quiet/secret faces
           ['🤐', '🤫'], ['🤫', '🤭'], ['🤭', '🤥'], ['🤥', '🤐'],
-          
-          // Sad faces
           ['😢', '😥'], ['😥', '😭'], ['😭', '😢'],
           ['🙁', '☹️'], ['☹️', '😕'], ['😕', '😟'], ['😟', '🙁'],
-          
-          // Angry faces
           ['😤', '😠'], ['😠', '😡'], ['😡', '🤬'], ['🤬', '😤'],
-          
-          // Love faces
           ['😗', '😙'], ['😙', '😚'], ['😚', '😘'], ['😘', '😗'],
           ['🥰', '😍'], ['😍', '🤩'], ['🤩', '🥰'],
-          
-          // Playful faces
           ['😝', '😛'], ['😛', '😜'], ['😜', '😋'], ['😋', '😝'],
           ['🤪', '😜'], ['😜', '🤪'],
-          
-          // Cool/smart faces
           ['🤓', '😎'], ['😎', '🧐'], ['🧐', '🤓'],
-          
-          // Hot/cold - facial expression difference, not just color
           ['🥵', '🥶'], ['🥶', '🥵'],
-          
-          // Extreme reactions
           ['🤯', '😱'], ['😱', '😨'], ['😨', '🤯'],
-          
-          // Friendly gestures
           ['🤗', '🤭'], ['🤭', '🤗'],
-          
-          // Additional subtle differences
           ['😇', '😊'], ['😊', '😉'], ['😉', '😇'],
           ['🌈', '🌅'], ['🌅', '🌆'], ['🌆', '🌈'],
-          
-          // Energy symbols - shape differences
           ['⚡', '💥'], ['💥', '💢'], ['💢', '🔥'], ['🔥', '⚡'],
           ['💤', '💨'], ['💨', '💦'], ['💦', '💧'], ['💧', '🫧'], ['🫧', '💤'],
-          
-          // Waves and water
           ['🌊', '💦'], ['💦', '💧'], ['💧', '🌊']
         ];
 
-        const ClockIcon = () => (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-            <path d="M12 6v6l4 2" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        );
+        function formatTime(ms) {
+            const totalSeconds = ms / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = (totalSeconds % 60).toFixed(2);
+            return minutes > 0 ? `${minutes}:${seconds.padStart(5, '0')}` : `${seconds}s`;
+        }
 
-        const TrophyIcon = () => (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M6 9v12M18 9v12M6 21h12M8 3h8a2 2 0 0 1 2 2v4H6V5a2 2 0 0 1 2-2z" strokeWidth="2"/>
-          </svg>
-        );
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
 
-        const RotateCcwIcon = () => (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M1 4v6h6M23 20v-6h-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        );
-
-        const LogOutIcon = () => (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        );
-
-        const OddOneOutGame = () => {
-          const [grid, setGrid] = useState([]);
-          const [oddIndex, setOddIndex] = useState(-1);
-          const [gameActive, setGameActive] = useState(false);
-          const [gameReady, setGameReady] = useState(false);
-          const [startTime, setStartTime] = useState(null);
-          const [currentTime, setCurrentTime] = useState(0);
-          const [leaderboard, setLeaderboard] = useState([]);
-          const [currentUser, setCurrentUser] = useState(null);
-          const [showLogin, setShowLogin] = useState(true);
-          const [loginName, setLoginName] = useState('');
-          const [loginPassword, setLoginPassword] = useState('');
-          const [isRegistering, setIsRegistering] = useState(false);
-          const [isResetting, setIsResetting] = useState(false);
-          const [newPassword, setNewPassword] = useState('');
-          const [activeTab, setActiveTab] = useState('leaderboard');
-          const [showGuestNamePrompt, setShowGuestNamePrompt] = useState(false);
-          const [guestNameInput, setGuestNameInput] = useState('');
-          const [pendingScore, setPendingScore] = useState(null);
-          const [difficulty, setDifficulty] = useState('easy');
-          const [showDifficultySelect, setShowDifficultySelect] = useState(false);
-          const [showWelcome, setShowWelcome] = useState(true);
-
-          const DIFFICULTY_CONFIG = {
-            easy: { gridSize: 6, name: 'Easy', emoji: '😊' },
-            medium: { gridSize: 9, name: 'Normal', emoji: '😎' },
-            hard: { gridSize: 12, name: 'Hard', emoji: '😤' },
-            insane: { gridSize: 17, name: 'Insane', emoji: '🤯' }
-          };
-
-          useEffect(() => {
-            loadLeaderboard();
-            checkLoggedInUser();
-            
-            const leaderboardRef = database.ref('charlie-isla-leaderboard-v2');
-            leaderboardRef.on('value', (snapshot) => {
-              if (snapshot.exists()) {
-                const data = JSON.parse(snapshot.val());
-                setLeaderboard(data);
-              }
-            });
-            
-            return () => {
-              leaderboardRef.off();
-            };
-          }, []);
-
-          useEffect(() => {
-            loadLeaderboard();
-          }, [difficulty]);
-
-          useEffect(() => {
-            let interval;
-            if (gameActive && startTime) {
-              interval = setInterval(() => {
-                setCurrentTime(Date.now() - startTime);
-              }, 10);
-            }
-            return () => clearInterval(interval);
-          }, [gameActive, startTime]);
-
-          const checkLoggedInUser = async () => {
-            try {
-              const result = await storage.get('charlie-isla-current-user', false);
-              if (result) {
-                setCurrentUser(JSON.parse(result.value));
-                setShowLogin(false);
-              }
-            } catch (error) {
-              console.log('No user logged in');
-            }
-          };
-
-          const handleLogin = async () => {
-            if (!loginName.trim() || !loginPassword.trim()) {
-              alert('Please enter both name and password');
-              return;
-            }
-
-            try {
-              const userKey = `charlie-isla-user-${loginName.trim().toLowerCase()}`;
-              
-              let result;
-              try {
-                result = await storage.get(userKey, true);
-              } catch (e) {
-                result = null;
-              }
-
-              if (isRegistering) {
-                if (result) {
-                  alert('Name already exists! Please choose a different name or login.');
-                  return;
-                }
-                
-                const newUser = { name: loginName.trim(), password: loginPassword };
-                await storage.set(userKey, JSON.stringify(newUser), true);
-                await storage.set('charlie-isla-current-user', JSON.stringify(newUser), false);
-                
-                setCurrentUser(newUser);
-                setShowLogin(false);
-                setLoginName('');
-                setLoginPassword('');
-              } else {
-                if (!result) {
-                  alert('User not found! Please register first.');
-                  return;
-                }
-
-                const userData = JSON.parse(result.value);
-                if (userData.password !== loginPassword) {
-                  alert('Incorrect password!');
-                  return;
-                }
-
-                await storage.set('charlie-isla-current-user', JSON.stringify(userData), false);
-                setCurrentUser(userData);
-                setShowLogin(false);
-                setLoginName('');
-                setLoginPassword('');
-              }
-            } catch (error) {
-              console.error('Login error:', error);
-              alert('Login failed: ' + error.message);
-            }
-          };
-
-          const handleResetPassword = async () => {
-            if (!loginName.trim() || !newPassword.trim()) {
-              alert('Please enter both name and new password');
-              return;
-            }
-
-            try {
-              const userKey = `charlie-isla-user-${loginName.trim().toLowerCase()}`;
-              const result = await storage.get(userKey, true);
-
-              if (!result) {
-                alert('User not found! Please check your name.');
-                return;
-              }
-
-              const userData = JSON.parse(result.value);
-              userData.password = newPassword;
-              await storage.set(userKey, JSON.stringify(userData), true);
-              
-              alert('Password reset successfully! You can now login with your new password.');
-              setIsResetting(false);
-              setLoginName('');
-              setNewPassword('');
-            } catch (error) {
-              console.error('Reset password error:', error);
-              alert('Password reset failed. Please try again.');
-            }
-          };
-
-          const handleLogout = async () => {
-            try {
-              await storage.delete('charlie-isla-current-user', false);
-              setCurrentUser(null);
-              setShowLogin(true);
-              setGameReady(false);
-              setGameActive(false);
-              setShowWelcome(true);
-            } catch (error) {
-              console.error('Logout error:', error);
-            }
-          };
-
-          const loadLeaderboard = async () => {
-            try {
-              const result = await storage.get(`charlie-isla-leaderboard-${difficulty}-v2`, true);
-              if (result) {
-                const data = JSON.parse(result.value);
-                setLeaderboard(data);
-              } else {
-                setLeaderboard([]);
-              }
-            } catch (error) {
-              setLeaderboard([]);
-            }
-          };
-
-          const saveLeaderboard = async (newLeaderboard) => {
-            try {
-              await storage.set(`charlie-isla-leaderboard-${difficulty}-v2`, JSON.stringify(newLeaderboard), true);
-            } catch (error) {
-              console.error('Failed to save leaderboard:', error);
-            }
-          };
-
-          const prepareGame = () => {
-            setShowDifficultySelect(true);
-          };
-
-          const startGame = () => {
-            // Select emoji set based on difficulty
-            const emojiSet = (difficulty === 'hard' || difficulty === 'insane') ? hardInsanePairs : easyNormalPairs;
-            const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
-            const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
-            
-            const gridSize = DIFFICULTY_CONFIG[difficulty].gridSize;
-            const totalCells = gridSize * gridSize;
-            const newGrid = Array(totalCells).fill(normal);
-            const randomOddIndex = Math.floor(Math.random() * totalCells);
-            newGrid[randomOddIndex] = odd;
-            
-            setGrid(newGrid);
-            setOddIndex(randomOddIndex);
-            setGameActive(true);
-            setStartTime(Date.now());
-          };
-
-          const startGameFromWelcome = () => {
-            setShowWelcome(false);
-            // Select emoji set based on difficulty
-            const emojiSet = (difficulty === 'hard' || difficulty === 'insane') ? hardInsanePairs : easyNormalPairs;
-            const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
-            const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
-            
-            const gridSize = DIFFICULTY_CONFIG[difficulty].gridSize;
-            const totalCells = gridSize * gridSize;
-            const newGrid = Array(totalCells).fill(normal);
-            const randomOddIndex = Math.floor(Math.random() * totalCells);
-            newGrid[randomOddIndex] = odd;
-            
-            setGrid(newGrid);
-            setOddIndex(randomOddIndex);
-            setGameActive(true);
-            setGameReady(true);
-            setStartTime(Date.now());
-            setCurrentTime(0);
-          };
-
-          const handleClick = (index) => {
-            if (!gameActive) return;
-            
-            if (index === oddIndex) {
-              setGameActive(false);
-              const finalTime = Date.now() - startTime;
-              setCurrentTime(finalTime);
-              
-              submitScoreAndContinue(finalTime);
-            }
-          };
-
-          const submitScoreAndContinue = async (finalTime) => {
-            if (!currentUser) return;
-            
-            // Always prompt for name if user is a guest (allows multiple people sharing device)
-            if (currentUser.isGuest) {
-              setPendingScore(finalTime);
-              setShowGuestNamePrompt(true);
-              return;
-            }
-            
-            const newEntry = {
-              name: currentUser.name,
-              time: finalTime,
-              difficulty: difficulty,
-              date: new Date().toISOString()
-            };
-            
-            const playerTimes = {};
-            [...leaderboard, newEntry].forEach(entry => {
-              if (!playerTimes[entry.name]) {
-                playerTimes[entry.name] = [];
-              }
-              playerTimes[entry.name].push(entry);
-            });
-            
-            Object.keys(playerTimes).forEach(name => {
-              playerTimes[name] = playerTimes[name]
-                .sort((a, b) => a.time - b.time)
-                .slice(0, 5);
-            });
-            
-            const updatedLeaderboard = Object.values(playerTimes)
-              .flat()
-              .sort((a, b) => a.time - b.time)
-              .slice(0, 50);
-            
-            const userEntries = updatedLeaderboard.filter(entry => entry.name === currentUser.name);
-            const bestPosition = updatedLeaderboard.findIndex(entry => 
-              entry.name === currentUser.name && entry.time === userEntries[0].time
-            ) + 1;
-            
-            setLeaderboard(updatedLeaderboard);
-            await saveLeaderboard(updatedLeaderboard);
-            
-            if (bestPosition <= 10) {
-              const positionEmoji = bestPosition === 1 ? '🥇' : bestPosition === 2 ? '🥈' : bestPosition === 3 ? '🥉' : '🏆';
-              alert(`${positionEmoji} Great job! Your best time is #${bestPosition} with ${formatTime(userEntries[0].time)}!`);
-            } else {
-              alert(`Good effort! Time: ${formatTime(finalTime)}. Your best: ${formatTime(userEntries[0].time)}`);
-            }
-            
-            prepareGame();
-          };
-
-          const handleGuestNameSubmit = async () => {
-            if (!guestNameInput.trim()) {
-              alert('Please enter a name');
-              return;
-            }
-            
-            // Don't update currentUser - keep them as "Guest" so they're prompted every time
-            setShowGuestNamePrompt(false);
-            
-            const finalTime = pendingScore;
-            const newEntry = {
-              name: guestNameInput.trim(),
-              time: finalTime,
-              difficulty: difficulty,
-              date: new Date().toISOString()
-            };
-            
-            const playerTimes = {};
-            [...leaderboard, newEntry].forEach(entry => {
-              if (!playerTimes[entry.name]) {
-                playerTimes[entry.name] = [];
-              }
-              playerTimes[entry.name].push(entry);
-            });
-            
-            Object.keys(playerTimes).forEach(name => {
-              playerTimes[name] = playerTimes[name]
-                .sort((a, b) => a.time - b.time)
-                .slice(0, 5);
-            });
-            
-            const updatedLeaderboard = Object.values(playerTimes)
-              .flat()
-              .sort((a, b) => a.time - b.time)
-              .slice(0, 50);
-            
-            const userEntries = updatedLeaderboard.filter(entry => entry.name === guestNameInput.trim());
-            const bestPosition = updatedLeaderboard.findIndex(entry => 
-              entry.name === guestNameInput.trim() && entry.time === userEntries[0].time
-            ) + 1;
-            
-            setLeaderboard(updatedLeaderboard);
-            await saveLeaderboard(updatedLeaderboard);
-            
-            if (bestPosition <= 10) {
-              const positionEmoji = bestPosition === 1 ? '🥇' : bestPosition === 2 ? '🥈' : bestPosition === 3 ? '🥉' : '🏆';
-              alert(`${positionEmoji} Great job! Your best time is #${bestPosition} with ${formatTime(userEntries[0].time)}!`);
-            } else {
-              alert(`Good effort! Time: ${formatTime(finalTime)}. Your best: ${formatTime(userEntries[0].time)}`);
-            }
-            
-            setGuestNameInput('');
-            setPendingScore(null);
-            prepareGame();
-          };
-
-          const formatTime = (ms) => {
-            const seconds = Math.floor(ms / 1000);
-            const milliseconds = Math.floor((ms % 1000) / 10);
-            return `${seconds}.${milliseconds.toString().padStart(2, '0')}s`;
-          };
-
-          const calculateUserStats = () => {
-            if (!currentUser) return null;
-            
-            const userEntries = leaderboard.filter(entry => entry.name === currentUser.name);
-            if (userEntries.length === 0) return null;
-            
-            const times = userEntries.map(e => e.time);
-            const bestTime = Math.min(...times);
-            const averageTime = times.reduce((a, b) => a + b, 0) / times.length;
-            const totalGames = userEntries.length;
-            
-            const recentGames = userEntries.slice(0, Math.min(5, userEntries.length));
-            const olderGames = userEntries.slice(5, Math.min(10, userEntries.length));
-            const recentAvg = recentGames.reduce((a, b) => a + b.time, 0) / recentGames.length;
-            const olderAvg = olderGames.length > 0 ? olderGames.reduce((a, b) => a + b.time, 0) / olderGames.length : recentAvg;
-            const improvement = olderGames.length > 0 ? ((olderAvg - recentAvg) / olderAvg * 100) : 0;
-            
-            let currentStreak = 0;
-            for (let i = 0; i < userEntries.length - 1; i++) {
-              if (userEntries[i].time < userEntries[i + 1].time) {
-                currentStreak++;
-              } else {
-                break;
-              }
-            }
-            
-            let bestStreak = 0;
-            let tempStreak = 0;
-            for (let i = 0; i < userEntries.length - 1; i++) {
-              if (userEntries[i].time < userEntries[i + 1].time) {
-                tempStreak++;
-                bestStreak = Math.max(bestStreak, tempStreak);
-              } else {
-                tempStreak = 0;
-              }
-            }
-            
-            return {
-              bestTime,
-              averageTime,
-              totalGames,
-              improvement,
-              currentStreak,
-              bestStreak,
-              recentGames: userEntries.slice(0, 10)
-            };
-          };
-
-          const calculatePersonalBests = () => {
-            if (!currentUser) return null;
-            
+        async function loadAllData() {
             const difficulties = ['easy', 'medium', 'hard', 'insane'];
-            const personalBests = {};
             
-            difficulties.forEach(diff => {
-              try {
-                const key = `charlie-isla-leaderboard-v2-${diff}`;
-                const result = localStorage.getItem(key);
-                if (result) {
-                  const entries = JSON.parse(result);
-                  const userEntries = entries.filter(e => e.name === currentUser.name);
-                  if (userEntries.length > 0) {
-                    const bestTime = Math.min(...userEntries.map(e => e.time));
-                    const gamesPlayed = userEntries.length;
-                    personalBests[diff] = { bestTime, gamesPlayed };
-                  }
+            // Load leaderboards
+            for (const diff of difficulties) {
+                try {
+                    const result = await storage.get(`charlie-isla-leaderboard-${diff}-v2`, true);
+                    allData.leaderboards[diff] = JSON.parse(result.value);
+                } catch (e) {
+                    allData.leaderboards[diff] = [];
                 }
-              } catch (e) {
-                console.error(`Error loading ${diff} stats:`, e);
-              }
-            });
+            }
             
-            return Object.keys(personalBests).length > 0 ? personalBests : null;
-          };
+            // Calculate statistics
+            calculateStats();
+            renderDashboard();
+        }
 
-          if (showLogin) {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4" style={{
-                backgroundSize: '200% 200%',
-                animation: 'gradient 15s ease infinite'
-              }}>
-                <style>{`
-                  @keyframes gradient {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                  }
-                `}</style>
-                <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                  <h1 className="text-4xl font-bold text-purple-600 mb-6 text-center">
-                    🔍 Charlie & Isla<br/>Odd One Out 🔍
-                  </h1>
-                  <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">
-                    {isResetting ? 'Reset Password' : isRegistering ? 'Register' : 'Login'}
-                  </h2>
-                  
-                  {isResetting ? (
-                    <div className="space-y-4">
-                      <div>
-                        <input
-                          type="text"
-                          value={loginName}
-                          onChange={(e) => setLoginName(e.target.value)}
-                          placeholder="Name"
-                          className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg"
-                        />
-                        <p className="text-xs text-gray-500 mt-1 ml-1">Enter the name you used to register</p>
-                      </div>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="New Password"
-                        className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg"
-                        onKeyPress={(e) => e.key === 'Enter' && handleResetPassword()}
-                      />
-                      <button
-                        onClick={handleResetPassword}
-                        className="w-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
-                      >
-                        Reset Password
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsResetting(false);
-                          setLoginName('');
-                          setNewPassword('');
-                        }}
-                        className="w-full text-purple-600 font-semibold hover:underline"
-                      >
-                        Back to Login
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <input
-                          type="text"
-                          value={loginName}
-                          onChange={(e) => setLoginName(e.target.value)}
-                          placeholder="Name"
-                          className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg"
-                          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                          autoFocus
-                        />
-                        {isRegistering && (
-                          <p className="text-xs text-gray-500 mt-1 ml-1">⚠️ Remember this - you'll need it to log in!</p>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          type="password"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
-                          placeholder="Password"
-                          className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg"
-                          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                        />
-                        {isRegistering && (
-                          <p className="text-xs text-gray-500 mt-1 ml-1">⚠️ Remember this - you'll need it to log in!</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleLogin}
-                        className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
-                      >
-                        {isRegistering ? 'Register & Start Playing' : 'Login'}
-                      </button>
-                      <button
-                        onClick={() => setIsRegistering(!isRegistering)}
-                        className="w-full text-purple-600 font-semibold hover:underline"
-                      >
-                        {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
-                      </button>
-                      {!isRegistering && (
-                        <button
-                          onClick={() => {
-                            setIsResetting(true);
-                            setLoginName('');
-                            setLoginPassword('');
-                          }}
-                          className="w-full text-gray-500 text-sm hover:underline"
-                        >
-                          Forgot password? Reset here
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <button
-                      onClick={() => {
-                        setCurrentUser({ name: 'Guest', isGuest: true });
-                        setShowLogin(false);
-                      }}
-                      className="w-full bg-gradient-to-r from-blue-400 to-cyan-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
-                    >
-                      Play as Guest 🎮
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          }
+        function calculateStats() {
+            const stats = {
+                totalGames: 0,
+                uniquePlayers: new Set(),
+                playerStats: {},
+                difficultyStats: {
+                    easy: { games: 0, avgTime: 0, fastestTime: Infinity },
+                    medium: { games: 0, avgTime: 0, fastestTime: Infinity },
+                    hard: { games: 0, avgTime: 0, fastestTime: Infinity },
+                    insane: { games: 0, avgTime: 0, fastestTime: Infinity }
+                },
+                recentGames: []
+            };
 
-          return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4" style={{
-              backgroundSize: '200% 200%',
-              animation: 'gradient 15s ease infinite'
-            }}>
-              <style>{`
-                @keyframes gradient {
-                  0% { background-position: 0% 50%; }
-                  50% { background-position: 100% 50%; }
-                  100% { background-position: 0% 50%; }
-                }
-              `}</style>
-              
-              {!gameReady && !gameActive && showWelcome && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-                    <button
-                      onClick={() => setShowWelcome(false)}
-                      className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold w-8 h-8 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                    <h2 className="text-4xl font-bold text-purple-600 mb-4 text-center">
-                      Welcome, {currentUser?.name}! 👋
-                    </h2>
-                    <p className="text-xl text-gray-700 mb-4 text-center">
-                      Find the different emoji as fast as you can!
-                    </p>
-                    
-                    <div className="mb-6">
-                      <p className="text-sm font-semibold text-gray-600 mb-3 text-center">Select Difficulty:</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
-                          <button
-                            key={key}
-                            onClick={() => setDifficulty(key)}
-                            className={`py-3 px-2 rounded-lg font-bold transition-all ${
-                              difficulty === key
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                          >
-                            <div className="text-2xl mb-1">{config.emoji}</div>
-                            <div className="text-xs">{config.name}</div>
-                            <div className="text-xs opacity-75">{config.gridSize}x{config.gridSize}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={startGameFromWelcome}
-                      className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white text-2xl font-bold py-4 rounded-lg hover:scale-105 transition-transform shadow-lg mb-3"
-                    >
-                      Start New Game 🎮
-                    </button>
-                    <button
-                      onClick={() => setShowWelcome(false)}
-                      className="w-full bg-blue-500 text-white text-lg font-semibold py-3 rounded-lg hover:bg-blue-600 transition-colors mb-3"
-                    >
-                      View Leaderboards 📊
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full bg-gray-500 text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      Login as Different User
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {showGuestNamePrompt && (
-                <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                    <h2 className="text-3xl font-bold text-purple-600 mb-4 text-center">
-                      Great job! 🎉
-                    </h2>
-                    <p className="text-lg text-gray-700 mb-2 text-center">
-                      Time: {pendingScore ? formatTime(pendingScore) : '0.00s'}
-                    </p>
-                    <p className="text-lg text-gray-700 mb-6 text-center">
-                      Enter your name to save your score:
-                    </p>
-                    <input
-                      type="text"
-                      value={guestNameInput}
-                      onChange={(e) => setGuestNameInput(e.target.value)}
-                      placeholder="Your name"
-                      className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg mb-4"
-                      onKeyPress={(e) => e.key === 'Enter' && handleGuestNameSubmit()}
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleGuestNameSubmit}
-                      className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg mb-3"
-                    >
-                      Save Score & Continue
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowGuestNamePrompt(false);
-                        setGuestNameInput('');
-                        setPendingScore(null);
-                        setShowWelcome(true);
-                        setGameReady(false);
-                        setGameActive(false);
-                      }}
-                      className="w-full bg-gray-500 text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      Don't Save - Back to Menu
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {showDifficultySelect && (
-                <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                    <h2 className="text-3xl font-bold text-purple-600 mb-6 text-center">
-                      Select Difficulty 🎚️
-                    </h2>
-                    <div className="grid grid-cols-1 gap-4 mb-6">
-                      {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setDifficulty(key);
-                            setShowDifficultySelect(false);
-                            // Start game immediately with selected difficulty
-                            // Select emoji set based on difficulty
-                            const emojiSet = (key === 'hard' || key === 'insane') ? hardInsanePairs : easyNormalPairs;
-                            const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
-                            const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
-                            
-                            const gridSize = config.gridSize;
-                            const totalCells = gridSize * gridSize;
-                            const newGrid = Array(totalCells).fill(normal);
-                            const randomOddIndex = Math.floor(Math.random() * totalCells);
-                            newGrid[randomOddIndex] = odd;
-                            
-                            setGrid(newGrid);
-                            setOddIndex(randomOddIndex);
-                            setGameActive(true);
-                            setGameReady(true);
-                            setStartTime(Date.now());
-                            setCurrentTime(0);
-                          }}
-                          className={`p-4 rounded-lg font-bold transition-all text-left ${
-                            difficulty === key
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:scale-105'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="text-2xl mb-1">{config.emoji} {config.name}</div>
-                              <div className="text-sm opacity-75">Grid: {config.gridSize}x{config.gridSize} ({config.gridSize * config.gridSize} cells)</div>
-                            </div>
-                            {difficulty === key && <div className="text-2xl">✓</div>}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setShowDifficultySelect(false)}
-                      className="w-full bg-gray-500 text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="max-w-6xl mx-auto">
-                <div className="flex justify-between items-center mb-4">
-                  <h1 className="text-3xl sm:text-5xl font-black text-white drop-shadow-lg" style={{ fontFamily: '"Comic Sans MS", "Marker Felt", "Chalkboard SE", fantasy', textShadow: '3px 3px 0px rgba(0,0,0,0.3), -1px -1px 0px rgba(255,255,255,0.3)' }}>
-                    🔍 Charlie & Isla - Odd One Out 🔍
-                  </h1>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowWelcome(true)}
-                      className="bg-white bg-opacity-20 backdrop-blur-sm text-white px-4 py-2 rounded-full hover:bg-opacity-30 transition-all font-semibold text-sm"
-                    >
-                      ⚙️ Menu
-                    </button>
-                    <div className="text-xl sm:text-2xl font-bold text-white bg-white bg-opacity-20 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-full">
-                      👤 {currentUser?.name}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xl text-white text-center mb-6">Find the different emoji as fast as you can!</p>
+            // Process each difficulty
+            Object.entries(allData.leaderboards).forEach(([diff, games]) => {
+                if (!games || games.length === 0) return;
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                  <div className="lg:col-span-2">
-                    <div className="bg-white rounded-2xl p-6 shadow-2xl">
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2 text-2xl font-bold text-purple-600">
-                            <ClockIcon />
-                            {formatTime(currentTime)}
-                          </div>
-                          <div className="bg-gradient-to-r from-purple-100 to-pink-100 px-3 py-1 rounded-full">
-                            <span className="text-sm font-semibold text-purple-700">
-                              {DIFFICULTY_CONFIG[difficulty].emoji} {DIFFICULTY_CONFIG[difficulty].name}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setShowDifficultySelect(true)}
-                            className="flex items-center gap-2 bg-purple-500 text-white font-bold py-2 px-4 rounded-full hover:scale-105 transition-transform"
-                          >
-                            🎚️ Difficulty
-                          </button>
-                          <button
-                            onClick={prepareGame}
-                            className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-2 px-4 rounded-full hover:scale-105 transition-transform"
-                          >
-                            <RotateCcwIcon />
-                            New Game
-                          </button>
-                          <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 bg-red-500 text-white font-bold py-2 px-4 rounded-full hover:scale-105 transition-transform"
-                          >
-                            <LogOutIcon />
-                            Logout
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {gameReady ? (
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: `repeat(${DIFFICULTY_CONFIG[difficulty].gridSize}, 1fr)`, 
-                          gap: '0', 
-                          padding: '8px', 
-                          margin: '0 auto',
-                          backgroundColor: '#f3f4f6', 
-                          borderRadius: '12px',
-                          maxWidth: '650px',
-                          width: '100%'
-                        }}>
-                          {grid.map((emoji, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handleClick(index)}
-                              style={{ 
-                                aspectRatio: '1',
-                                fontSize: difficulty === 'insane' ? '1.2rem' : difficulty === 'hard' ? '1.3rem' : difficulty === 'medium' ? '1.4rem' : '1.6rem',
-                                padding: '0',
-                                margin: '0',
-                                border: 'none',
-                                background: 'transparent',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                lineHeight: '1',
-                                transition: 'background-color 0.2s'
-                              }}
-                              onMouseEnter={(e) => e.target.style.backgroundColor = '#fef08a'}
-                              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: `repeat(${DIFFICULTY_CONFIG[difficulty].gridSize}, 1fr)`, 
-                          gap: '0', 
-                          padding: '8px', 
-                          margin: '0 auto',
-                          backgroundColor: '#e5e7eb', 
-                          borderRadius: '12px',
-                          maxWidth: '650px',
-                          width: '100%',
-                          position: 'relative',
-                          minHeight: '300px'
-                        }}>
-                          {Array.from({ length: DIFFICULTY_CONFIG[difficulty].gridSize * DIFFICULTY_CONFIG[difficulty].gridSize }).map((_, index) => (
-                            <div
-                              key={index}
-                              style={{ 
-                                aspectRatio: '1',
-                                fontSize: difficulty === 'insane' ? '1.2rem' : difficulty === 'hard' ? '1.3rem' : difficulty === 'medium' ? '1.4rem' : '1.6rem',
-                                padding: '0',
-                                margin: '0',
-                                border: 'none',
-                                background: 'transparent',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                lineHeight: '1',
-                                opacity: '0.3',
-                                color: '#9ca3af'
-                              }}
-                            >
-                              ?
-                            </div>
-                          ))}
-                          <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            textAlign: 'center'
-                          }}>
-                            <button
-                              onClick={prepareGame}
-                              className="bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-4 px-8 rounded-full hover:scale-105 transition-transform shadow-xl text-lg"
-                            >
-                              🎮 Start Playing
-                            </button>
-                            <p className="text-gray-500 text-sm mt-3">
-                              {DIFFICULTY_CONFIG[difficulty].emoji} {DIFFICULTY_CONFIG[difficulty].name} Mode
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                stats.difficultyStats[diff].games = games.length;
+                const times = games.map(g => g.time);
+                stats.difficultyStats[diff].avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+                stats.difficultyStats[diff].fastestTime = Math.min(...times);
+                
+                games.forEach(game => {
+                    stats.totalGames++;
+                    stats.uniquePlayers.add(game.name);
+                    
+                    if (!stats.playerStats[game.name]) {
+                        stats.playerStats[game.name] = {
+                            name: game.name,
+                            totalGames: 0,
+                            bestTime: Infinity,
+                            lastPlayed: null,
+                            difficulties: {}
+                        };
+                    }
+                    
+                    stats.playerStats[game.name].totalGames++;
+                    stats.playerStats[game.name].bestTime = Math.min(stats.playerStats[game.name].bestTime, game.time);
+                    
+                    if (!stats.playerStats[game.name].lastPlayed || new Date(game.date) > new Date(stats.playerStats[game.name].lastPlayed)) {
+                        stats.playerStats[game.name].lastPlayed = game.date;
+                    }
+                    
+                    if (!stats.playerStats[game.name].difficulties[diff]) {
+                        stats.playerStats[game.name].difficulties[diff] = 0;
+                    }
+                    stats.playerStats[game.name].difficulties[diff]++;
+                    
+                    stats.recentGames.push({...game, difficulty: diff});
+                });
+            });
 
-                  <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-3 py-3 border-b border-gray-200">
-                      <div className="flex flex-wrap gap-1">
-                        <button
-                          onClick={() => setActiveTab('leaderboard')}
-                          className={`flex-1 min-w-[70px] px-2 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
-                            activeTab === 'leaderboard' 
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="text-lg">🏆</span>
-                            <span className="hidden sm:inline text-xs">Leaderboard</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('personal')}
-                          className={`flex-1 min-w-[70px] px-2 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
-                            activeTab === 'personal' 
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="text-lg">📊</span>
-                            <span className="hidden sm:inline text-xs">My Stats</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('global')}
-                          className={`flex-1 min-w-[70px] px-2 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
-                            activeTab === 'global' 
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="text-lg">🏅</span>
-                            <span className="hidden sm:inline text-xs">My Bests</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('recent')}
-                          className={`flex-1 min-w-[70px] px-2 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
-                            activeTab === 'recent' 
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="text-lg">🕐</span>
-                            <span className="hidden sm:inline text-xs">Recent</span>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
+            stats.recentGames.sort((a, b) => new Date(b.date) - new Date(a.date));
+            stats.recentGames = stats.recentGames.slice(0, 50);
+            
+            allData.stats = stats;
+        }
 
-                    <div className="p-4 sm:p-6">
-                    {activeTab === 'leaderboard' && (
-                      <div>
-                        <div className="mb-3 text-center">
-                          <div className="inline-block relative group">
-                            <button className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full text-sm font-semibold text-purple-700 hover:from-purple-200 hover:to-pink-200 transition-all cursor-pointer">
-                              {DIFFICULTY_CONFIG[difficulty].emoji} {DIFFICULTY_CONFIG[difficulty].name} Mode
-                              <span className="text-xs opacity-60">▼</span>
+        function renderDashboard() {
+            const stats = allData.stats;
+            const playerList = Object.values(stats.playerStats).sort((a, b) => b.totalGames - a.totalGames);
+            
+            document.getElementById('root').innerHTML = `
+                <div class="min-h-screen p-6">
+                    <div class="max-w-7xl mx-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <h1 class="text-4xl font-bold text-purple-600">🎮 Odd One Out - Admin Dashboard</h1>
+                            <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                                Logout
                             </button>
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white rounded-lg shadow-xl border-2 border-purple-200 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[140px]">
-                              {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
-                                <button
-                                  key={key}
-                                  onClick={() => setDifficulty(key)}
-                                  className={`w-full px-4 py-2 text-left hover:bg-purple-50 transition-colors ${
-                                    difficulty === key ? 'bg-purple-100 font-bold' : ''
-                                  }`}
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="bg-white rounded-lg shadow mb-6 p-2">
+                            <div class="flex gap-2">
+                                <button 
+                                    onclick="switchTab('overview')" 
+                                    class="${activeTab === 'overview' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} px-6 py-3 rounded-lg font-semibold transition-all"
                                 >
-                                  {config.emoji} {config.name}
+                                    📊 Overview
                                 </button>
-                              ))}
+                                <button 
+                                    onclick="switchTab('emojis')" 
+                                    class="${activeTab === 'emojis' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} px-6 py-3 rounded-lg font-semibold transition-all"
+                                >
+                                    😀 Emoji Pairs
+                                </button>
                             </div>
-                          </div>
                         </div>
-                        <p className="text-xs text-gray-500 mb-3">(Top 5 times per player)</p>
-                        {leaderboard.length === 0 ? (
-                          <p className="text-gray-500 text-center py-8">No scores yet. Be the first!</p>
-                        ) : (
-                          <div className="space-y-2 max-h-96 overflow-y-auto">
-                            {leaderboard.slice(0, 20).map((entry, index) => (
-                              <div
-                                key={index}
-                                className={`flex justify-between items-center p-3 rounded-lg ${
-                                  index === 0 ? 'bg-yellow-100' : index === 1 ? 'bg-gray-100' : index === 2 ? 'bg-orange-100' : 'bg-gray-50'
-                                } ${entry.name === currentUser?.name ? 'ring-2 ring-purple-500' : ''}`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className="text-xl font-bold text-gray-600 w-6">
-                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
-                                  </span>
-                                  <span className="font-semibold text-gray-800">{entry.name}</span>
-                                </div>
-                                <span className="font-mono font-bold text-purple-600">
-                                  {formatTime(entry.time)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
 
-                    {activeTab === 'personal' && (() => {
-                      const stats = calculateUserStats();
-                      if (!stats) {
-                        return <p className="text-gray-500 text-center py-8">Play some games to see your stats!</p>;
-                      }
-                      return (
-                        <div className="space-y-4 max-h-96 overflow-y-auto">
-                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
-                            <div className="text-sm text-gray-600 mb-1">Best Time</div>
-                            <div className="text-3xl font-bold text-purple-600">{formatTime(stats.bestTime)}</div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-blue-50 p-3 rounded-lg">
-                              <div className="text-xs text-gray-600 mb-1">Average Time</div>
-                              <div className="text-xl font-bold text-blue-600">{formatTime(stats.averageTime)}</div>
+                        ${activeTab === 'overview' ? `
+                        <!-- Overview Stats -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Total Games</div>
+                                <div class="text-3xl font-bold text-purple-600">${stats.totalGames}</div>
                             </div>
-                            <div className="bg-green-50 p-3 rounded-lg">
-                              <div className="text-xs text-gray-600 mb-1">Games Played</div>
-                              <div className="text-xl font-bold text-green-600">{stats.totalGames}</div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Unique Players</div>
+                                <div class="text-3xl font-bold text-blue-600">${stats.uniquePlayers.size}</div>
                             </div>
-                          </div>
-
-                          <div className="bg-orange-50 p-4 rounded-lg">
-                            <div className="text-sm text-gray-600 mb-1">Improvement</div>
-                            <div className="text-2xl font-bold text-orange-600">
-                              {stats.improvement > 0 ? '+' : ''}{stats.improvement.toFixed(1)}%
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Avg Games/Player</div>
+                                <div class="text-3xl font-bold text-green-600">${(stats.totalGames / stats.uniquePlayers.size).toFixed(1)}</div>
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">Last 5 games vs previous 5</div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-red-50 p-3 rounded-lg">
-                              <div className="text-xs text-gray-600 mb-1">Current Streak</div>
-                              <div className="text-xl font-bold text-red-600">{stats.currentStreak} 🔥</div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Most Active</div>
+                                <div class="text-xl font-bold text-orange-600">${playerList[0]?.name || 'N/A'}</div>
+                                <div class="text-sm text-gray-500">${playerList[0]?.totalGames || 0} games</div>
                             </div>
-                            <div className="bg-yellow-50 p-3 rounded-lg">
-                              <div className="text-xs text-gray-600 mb-1">Best Streak</div>
-                              <div className="text-xl font-bold text-yellow-600">{stats.bestStreak} ⚡</div>
-                            </div>
-                          </div>
                         </div>
-                      );
-                    })()}
 
-                    {activeTab === 'global' && (() => {
-                      const personalBests = calculatePersonalBests();
-                      if (!personalBests) {
-                        return <p className="text-gray-500 text-center py-8">Play games to see your personal bests!</p>;
-                      }
-                      return (
-                        <div className="space-y-3">
-                          <p className="text-xs text-gray-500 text-center mb-3">Your best times across all difficulties</p>
-                          
-                          {personalBests.easy && (
-                            <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border-2 border-green-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-green-700 mb-1">
-                                    {DIFFICULTY_CONFIG.easy.emoji} Easy
-                                  </div>
-                                  <div className="text-2xl font-bold text-green-600">
-                                    {formatTime(personalBests.easy.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-green-600 mt-1">
-                                    {personalBests.easy.gamesPlayed} game{personalBests.easy.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
+                        <!-- Difficulty Stats -->
+                        <div class="bg-white rounded-lg shadow mb-6 p-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Difficulty Statistics</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                ${Object.entries(stats.difficultyStats).map(([diff, data]) => `
+                                    <div class="border rounded-lg p-4">
+                                        <div class="text-lg font-semibold capitalize mb-2">${diff}</div>
+                                        <div class="space-y-1 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Games:</span>
+                                                <span class="font-bold">${data.games}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Avg Time:</span>
+                                                <span class="font-bold">${data.games > 0 ? formatTime(data.avgTime) : 'N/A'}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Fastest:</span>
+                                                <span class="font-bold text-green-600">${data.fastestTime !== Infinity ? formatTime(data.fastestTime) : 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
-                          )}
-                          
-                          {personalBests.medium && (
-                            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-lg border-2 border-yellow-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-yellow-700 mb-1">
-                                    {DIFFICULTY_CONFIG.medium.emoji} Normal
-                                  </div>
-                                  <div className="text-2xl font-bold text-yellow-600">
-                                    {formatTime(personalBests.medium.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-yellow-600 mt-1">
-                                    {personalBests.medium.gamesPlayed} game{personalBests.medium.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {personalBests.hard && (
-                            <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg border-2 border-orange-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-orange-700 mb-1">
-                                    {DIFFICULTY_CONFIG.hard.emoji} Hard
-                                  </div>
-                                  <div className="text-2xl font-bold text-orange-600">
-                                    {formatTime(personalBests.hard.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-orange-600 mt-1">
-                                    {personalBests.hard.gamesPlayed} game{personalBests.hard.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {personalBests.insane && (
-                            <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border-2 border-red-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-red-700 mb-1">
-                                    {DIFFICULTY_CONFIG.insane.emoji} Insane
-                                  </div>
-                                  <div className="text-2xl font-bold text-red-600">
-                                    {formatTime(personalBests.insane.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-red-600 mt-1">
-                                    {personalBests.insane.gamesPlayed} game{personalBests.insane.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
-                            </div>
-                          )}
                         </div>
-                      );
-                    })()}
 
-                    {activeTab === 'recent' && (() => {
-                      const stats = calculateUserStats();
-                      if (!stats || stats.recentGames.length === 0) {
-                        return <p className="text-gray-500 text-center py-8">No recent games yet!</p>;
-                      }
-                      return (
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          <p className="text-xs text-gray-500 mb-3">Your last 10 games</p>
-                          {stats.recentGames.map((entry, index) => (
-                            <div
-                              key={index}
-                              className="flex justify-between items-center p-3 rounded-lg bg-gray-50"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm font-bold text-gray-600 w-6">#{index + 1}</span>
-                                <span className="text-sm text-gray-600">
-                                  {new Date(entry.date).toLocaleDateString()} {new Date(entry.date).toLocaleTimeString()}
-                                </span>
-                              </div>
-                              <span className="font-mono font-bold text-purple-600">
-                                {formatTime(entry.time)}
-                              </span>
+                        <!-- Player List -->
+                        <div class="bg-white rounded-lg shadow mb-6 p-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">👥 All Players (${playerList.length})</h2>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left">#</th>
+                                            <th class="px-4 py-2 text-left">Name</th>
+                                            <th class="px-4 py-2 text-left">Total Games</th>
+                                            <th class="px-4 py-2 text-left">Best Time</th>
+                                            <th class="px-4 py-2 text-left">Last Played</th>
+                                            <th class="px-4 py-2 text-left">Difficulties</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${playerList.map((player, index) => `
+                                            <tr class="border-b hover:bg-gray-50">
+                                                <td class="px-4 py-2">${index + 1}</td>
+                                                <td class="px-4 py-2 font-semibold">${player.name}</td>
+                                                <td class="px-4 py-2">${player.totalGames}</td>
+                                                <td class="px-4 py-2 text-green-600 font-mono">${formatTime(player.bestTime)}</td>
+                                                <td class="px-4 py-2 text-sm text-gray-600">${player.lastPlayed ? formatDate(player.lastPlayed) : 'N/A'}</td>
+                                                <td class="px-4 py-2 text-xs">
+                                                    ${Object.entries(player.difficulties).map(([diff, count]) => 
+                                                        `<span class="inline-block bg-gray-200 rounded px-2 py-1 mr-1">${diff}: ${count}</span>`
+                                                    ).join('')}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
                             </div>
-                          ))}
                         </div>
-                      );
-                    })()}
+
+                        <!-- Recent Games -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">🕐 Recent Games (Last 50)</h2>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left">Date</th>
+                                            <th class="px-4 py-2 text-left">Player</th>
+                                            <th class="px-4 py-2 text-left">Difficulty</th>
+                                            <th class="px-4 py-2 text-left">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${stats.recentGames.map(game => `
+                                            <tr class="border-b hover:bg-gray-50">
+                                                <td class="px-4 py-2 text-sm text-gray-600">${formatDate(game.date)}</td>
+                                                <td class="px-4 py-2 font-semibold">${game.name}</td>
+                                                <td class="px-4 py-2">
+                                                    <span class="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs capitalize">
+                                                        ${game.difficulty}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-2 font-mono text-green-600">${formatTime(game.time)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        ${activeTab === 'emojis' ? `
+                        <!-- Emoji Pairs Database -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Easy & Normal Pairs -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-2xl font-bold text-gray-800 mb-4">😊 Easy & Normal Levels</h2>
+                                <p class="text-sm text-gray-600 mb-4">${easyNormalPairs.length} emoji pairs (includes color-based pairs)</p>
+                                <div class="max-h-96 overflow-y-auto">
+                                    <div class="grid grid-cols-4 gap-2">
+                                        ${easyNormalPairs.map(pair => `
+                                            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                                                <div class="text-3xl mb-1">${pair[0]}</div>
+                                                <div class="text-sm text-gray-400">vs</div>
+                                                <div class="text-3xl">${pair[1]}</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                                    <p class="text-xs text-blue-800"><strong>Includes:</strong> Color-based pairs (hearts, shapes), facial expressions, orientations, and more</p>
+                                </div>
+                            </div>
+
+                            <!-- Hard & Insane Pairs -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-2xl font-bold text-gray-800 mb-4">🤯 Hard & Insane Levels</h2>
+                                <p class="text-sm text-gray-600 mb-4">${hardInsanePairs.length} emoji pairs (NO color-only differences)</p>
+                                <div class="max-h-96 overflow-y-auto">
+                                    <div class="grid grid-cols-4 gap-2">
+                                        ${hardInsanePairs.map(pair => `
+                                            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                                                <div class="text-3xl mb-1">${pair[0]}</div>
+                                                <div class="text-sm text-gray-400">vs</div>
+                                                <div class="text-3xl">${pair[1]}</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="mt-4 p-3 bg-orange-50 rounded-lg">
+                                    <p class="text-xs text-orange-800"><strong>Excludes:</strong> Color-only pairs (colored hearts, colored shapes). Only shape/expression/orientation differences allowed</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comparison Stats -->
+                        <div class="bg-white rounded-lg shadow p-6 mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">📈 Database Comparison</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="border rounded-lg p-4">
+                                    <div class="text-lg font-semibold mb-2">Easy & Normal</div>
+                                    <div class="text-3xl font-bold text-green-600">${easyNormalPairs.length}</div>
+                                    <div class="text-sm text-gray-500">Total pairs</div>
+                                </div>
+                                <div class="border rounded-lg p-4">
+                                    <div class="text-lg font-semibold mb-2">Hard & Insane</div>
+                                    <div class="text-3xl font-bold text-red-600">${hardInsanePairs.length}</div>
+                                    <div class="text-sm text-gray-500">Total pairs</div>
+                                </div>
+                                <div class="border rounded-lg p-4">
+                                    <div class="text-lg font-semibold mb-2">Unique to Easy/Normal</div>
+                                    <div class="text-3xl font-bold text-blue-600">${easyNormalPairs.length - hardInsanePairs.length}</div>
+                                    <div class="text-sm text-gray-500">Color-based pairs removed</div>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="text-center text-gray-500 text-sm mt-6">
+                            <p>Last updated: ${new Date().toLocaleString()}</p>
+                            <p class="mt-1">Admin Dashboard v${ADMIN_VERSION}</p>
+                        </div>
                     </div>
-                  </div>
                 </div>
+            `;
+        }
 
-                <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 text-white text-center">
-                  <p className="text-sm">💡 Tip: The different emoji is very similar but not identical. Look carefully!</p>
-                  <p className="text-xs mt-1 opacity-75">Logged in as: {currentUser?.name}</p>
-                  <div className="mt-3 pt-3 border-t border-white border-opacity-30">
-                    <p className="text-xs opacity-60">v{GAME_VERSION} • Updated: {LAST_UPDATED}</p>
-                    <a 
-                      href="admin-dashboard.html" 
-                      target="_blank"
-                      className="inline-block mt-2 text-xs text-white opacity-50 hover:opacity-100 transition-opacity"
-                    >
-                      🔐 Admin
-                    </a>
-                  </div>
+        function renderLogin() {
+            document.getElementById('root').innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                        <h1 class="text-4xl font-bold text-purple-600 mb-6 text-center">
+                            🔐 Admin Login
+                        </h1>
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder="Enter admin password"
+                            class="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg mb-4"
+                            onkeypress="if(event.key === 'Enter') attemptLogin()"
+                        />
+                        <button
+                            onclick="attemptLogin()"
+                            class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                        >
+                            Login
+                        </button>
+                        <div id="error" class="text-red-500 text-center mt-4 hidden"></div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          );
-        };
+            `;
+            document.getElementById('password').focus();
+        }
 
-        ReactDOM.render(<OddOneOutGame />, document.getElementById('root'));
-      }
-      
-      // Start initialization when DOM is ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeApp);
-      } else {
-        initializeApp();
-      }
+        function attemptLogin() {
+            const password = document.getElementById('password').value;
+            if (password === ADMIN_PASSWORD) {
+                isAuthenticated = true;
+                loadAllData();
+            } else {
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = 'Incorrect password';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            isAuthenticated = false;
+            renderLogin();
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            renderDashboard();
+        }
+
+        // Initialize
+        renderLogin();
     </script>
 </body>
 </html>
