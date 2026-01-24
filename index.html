@@ -90,8 +90,8 @@
             }
         };
 
-        const GAME_VERSION = '5.3.2';
-        const LAST_UPDATED = 'January 25, 2026 - Guest Skip Option';
+        const GAME_VERSION = '6.1.0';
+        const LAST_UPDATED = 'January 25, 2026 - Admin Dashboard';
 
         const emojiPairs = [
           // Similar smiling faces - extremely tricky!
@@ -248,7 +248,8 @@
           const DIFFICULTY_CONFIG = {
             easy: { gridSize: 6, name: 'Easy', emoji: '😊' },
             medium: { gridSize: 9, name: 'Normal', emoji: '😎' },
-            insane: { gridSize: 12, name: 'Insane', emoji: '🤯' }
+            hard: { gridSize: 12, name: 'Hard', emoji: '😤' },
+            insane: { gridSize: 17, name: 'Insane', emoji: '🤯' }
           };
 
           useEffect(() => {
@@ -630,7 +631,7 @@
           const calculatePersonalBests = () => {
             if (!currentUser) return null;
             
-            const difficulties = ['easy', 'medium', 'insane'];
+            const difficulties = ['easy', 'medium', 'hard', 'insane'];
             const personalBests = {};
             
             difficulties.forEach(diff => {
@@ -1023,7 +1024,7 @@
                           margin: '0 auto',
                           backgroundColor: '#f3f4f6', 
                           borderRadius: '12px',
-                          maxWidth: difficulty === 'insane' ? '650px' : '500px',
+                          maxWidth: '650px',
                           width: '100%'
                         }}>
                           {grid.map((emoji, index) => (
@@ -1032,7 +1033,7 @@
                               onClick={() => handleClick(index)}
                               style={{ 
                                 aspectRatio: '1',
-                                fontSize: difficulty === 'insane' ? '1.2rem' : '1.5rem',
+                                fontSize: difficulty === 'insane' ? '1.2rem' : difficulty === 'hard' ? '1.3rem' : difficulty === 'medium' ? '1.4rem' : '1.6rem',
                                 padding: '0',
                                 margin: '0',
                                 border: 'none',
@@ -1060,7 +1061,7 @@
                           margin: '0 auto',
                           backgroundColor: '#e5e7eb', 
                           borderRadius: '12px',
-                          maxWidth: difficulty === 'insane' ? '650px' : '500px',
+                          maxWidth: '650px',
                           width: '100%',
                           position: 'relative',
                           minHeight: '300px'
@@ -1070,7 +1071,7 @@
                               key={index}
                               style={{ 
                                 aspectRatio: '1',
-                                fontSize: difficulty === 'insane' ? '1.2rem' : '1.5rem',
+                                fontSize: difficulty === 'insane' ? '1.2rem' : difficulty === 'hard' ? '1.3rem' : difficulty === 'medium' ? '1.4rem' : '1.6rem',
                                 padding: '0',
                                 margin: '0',
                                 border: 'none',
@@ -1310,6 +1311,25 @@
                             </div>
                           )}
                           
+                          {personalBests.hard && (
+                            <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg border-2 border-orange-200">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <div className="text-sm font-semibold text-orange-700 mb-1">
+                                    {DIFFICULTY_CONFIG.hard.emoji} Hard
+                                  </div>
+                                  <div className="text-2xl font-bold text-orange-600">
+                                    {formatTime(personalBests.hard.bestTime)}
+                                  </div>
+                                  <div className="text-xs text-orange-600 mt-1">
+                                    {personalBests.hard.gamesPlayed} game{personalBests.hard.gamesPlayed !== 1 ? 's' : ''} played
+                                  </div>
+                                </div>
+                                <div className="text-3xl">🏆</div>
+                              </div>
+                            </div>
+                          )}
+                          
                           {personalBests.insane && (
                             <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border-2 border-red-200">
                               <div className="flex justify-between items-center">
@@ -1368,6 +1388,13 @@
                   <p className="text-xs mt-1 opacity-75">Logged in as: {currentUser?.name}</p>
                   <div className="mt-3 pt-3 border-t border-white border-opacity-30">
                     <p className="text-xs opacity-60">v{GAME_VERSION} • Updated: {LAST_UPDATED}</p>
+                    <a 
+                      href="admin-dashboard.html" 
+                      target="_blank"
+                      className="inline-block mt-2 text-xs text-white opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                      🔐 Admin
+                    </a>
                   </div>
                 </div>
               </div>
