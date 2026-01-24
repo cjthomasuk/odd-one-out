@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Odd One Out</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+    
+    <script>
+        const ADMIN_PASSWORD = "charlie-isla-admin-2026"; // Change this to your secure password
+        
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCIz8Nja1unTQteI8eV62sSBW1dW49Ezhg",
+            authDomain: "odd-one-out-game-f39ab.firebaseapp.com",
+            databaseURL: "https://odd-one-out-game-f39ab-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "odd-one-out-game-f39ab",
+            storageBucket: "odd-one-out-game-f39ab.firebasestorage.app",
+            messagingSenderId: "1011236518991",
+            appId: "1:1011236518991:web:10e0936a8069bcb57ebe3a",
+            measurementId: "G-66NJNJJ52D"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+        
+        // Storage wrapper
+        const storage = {
+            get: async (key, shared = false) => {
+                if (shared) {
+                    const snapshot = await database.ref(key).once('value');
+                    if (snapshot.exists()) {
+                        return { key, value: snapshot.val(), shared };
+                    }
+                    throw new Error('Key not found');
+                } else {
+                    const value = localStorage.getItem(key);
+                    if (value === null) {
+                        throw new Error('Key not found');
+                    }
+                    return { key, value, shared };
+                }
+            }
+        };
+
+        let isAuthenticated = false;
+        let allData = {
+            users: [],
+            leaderboards: {},
+            stats: {}
+        };
+
+        function formatTime(ms) {
+            const totalSeconds = ms / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = (totalSeconds % 60).toFixed(2);
+            return minutes > 0 ? `${minutes}:${seconds.padStart(5, '0')}` : `${seconds}s`;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
+        async function loadAllData() {
+            const difficulties = ['easy', 'medium', 'hard', 'insane'];
+            
+            // Load leaderboards
+            for (const diff of difficulties) {
+                try {
+                    const result = await storage.get(`charlie-isla-leaderboard-${diff}-v2`, true);
+                    allData.leaderboards[diff] = JSON.parse(result.value);
+                } catch (e) {
+                    allData.leaderboards[diff] = [];
+                }
+            }
+            
+            // Calculate statistics
+            calculateStats();
+            renderDashboard();
+        }
+
+        function calculateStats() {
+            const stats = {
+                totalGames: 0,
+                uniquePlayers: new Set(),
+                playerStats: {},
+                difficultyStats: {
+                    easy: { games: 0, avgTime: 0, fastestTime: Infinity },
+                    medium: { games: 0, avgTime: 0, fastestTime: Infinity },
+                    hard: { games: 0, avgTime: 0, fastestTime: Infinity },
+                    insane: { games: 0, avgTime: 0, fastestTime: Infinity }
+                },
+                recentGames: []
+            };
+
+            // Process each difficulty
+            Object.entries(allData.leaderboards).forEach(([diff, games]) => {
+                if (!games || games.length === 0) return;
+                
+                stats.difficultyStats[diff].games = games.length;
+                const times = games.map(g => g.time);
+                stats.difficultyStats[diff].avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+                stats.difficultyStats[diff].fastestTime = Math.min(...times);
+                
+                games.forEach(game => {
+                    stats.totalGames++;
+                    stats.uniquePlayers.add(game.name);
+                    
+                    if (!stats.playerStats[game.name]) {
+                        stats.playerStats[game.name] = {
+                            name: game.name,
+                            totalGames: 0,
+                            bestTime: Infinity,
+                            lastPlayed: null,
+                            difficulties: {}
+                        };
+                    }
+                    
+                    stats.playerStats[game.name].totalGames++;
+                    stats.playerStats[game.name].bestTime = Math.min(stats.playerStats[game.name].bestTime, game.time);
+                    
+                    if (!stats.playerStats[game.name].lastPlayed || new Date(game.date) > new Date(stats.playerStats[game.name].lastPlayed)) {
+                        stats.playerStats[game.name].lastPlayed = game.date;
+                    }
+                    
+                    if (!stats.playerStats[game.name].difficulties[diff]) {
+                        stats.playerStats[game.name].difficulties[diff] = 0;
+                    }
+                    stats.playerStats[game.name].difficulties[diff]++;
+                    
+                    stats.recentGames.push({...game, difficulty: diff});
+                });
+            });
+
+            stats.recentGames.sort((a, b) => new Date(b.date) - new Date(a.date));
+            stats.recentGames = stats.recentGames.slice(0, 50);
+            
+            allData.stats = stats;
+        }
+
+        function renderDashboard() {
+            const stats = allData.stats;
+            const playerList = Object.values(stats.playerStats).sort((a, b) => b.totalGames - a.totalGames);
+            
+            document.getElementById('root').innerHTML = `
+                <div class="min-h-screen p-6">
+                    <div class="max-w-7xl mx-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <h1 class="text-4xl font-bold text-purple-600">🎮 Odd One Out - Admin Dashboard</h1>
+                            <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                                Logout
+                            </button>
+                        </div>
+
+                        <!-- Overview Stats -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Total Games</div>
+                                <div class="text-3xl font-bold text-purple-600">${stats.totalGames}</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Unique Players</div>
+                                <div class="text-3xl font-bold text-blue-600">${stats.uniquePlayers.size}</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Avg Games/Player</div>
+                                <div class="text-3xl font-bold text-green-600">${(stats.totalGames / stats.uniquePlayers.size).toFixed(1)}</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-gray-500 text-sm mb-1">Most Active</div>
+                                <div class="text-xl font-bold text-orange-600">${playerList[0]?.name || 'N/A'}</div>
+                                <div class="text-sm text-gray-500">${playerList[0]?.totalGames || 0} games</div>
+                            </div>
+                        </div>
+
+                        <!-- Difficulty Stats -->
+                        <div class="bg-white rounded-lg shadow mb-6 p-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Difficulty Statistics</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                ${Object.entries(stats.difficultyStats).map(([diff, data]) => `
+                                    <div class="border rounded-lg p-4">
+                                        <div class="text-lg font-semibold capitalize mb-2">${diff}</div>
+                                        <div class="space-y-1 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Games:</span>
+                                                <span class="font-bold">${data.games}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Avg Time:</span>
+                                                <span class="font-bold">${data.games > 0 ? formatTime(data.avgTime) : 'N/A'}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Fastest:</span>
+                                                <span class="font-bold text-green-600">${data.fastestTime !== Infinity ? formatTime(data.fastestTime) : 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Player List -->
+                        <div class="bg-white rounded-lg shadow mb-6 p-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">👥 All Players (${playerList.length})</h2>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left">#</th>
+                                            <th class="px-4 py-2 text-left">Name</th>
+                                            <th class="px-4 py-2 text-left">Total Games</th>
+                                            <th class="px-4 py-2 text-left">Best Time</th>
+                                            <th class="px-4 py-2 text-left">Last Played</th>
+                                            <th class="px-4 py-2 text-left">Difficulties</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${playerList.map((player, index) => `
+                                            <tr class="border-b hover:bg-gray-50">
+                                                <td class="px-4 py-2">${index + 1}</td>
+                                                <td class="px-4 py-2 font-semibold">${player.name}</td>
+                                                <td class="px-4 py-2">${player.totalGames}</td>
+                                                <td class="px-4 py-2 text-green-600 font-mono">${formatTime(player.bestTime)}</td>
+                                                <td class="px-4 py-2 text-sm text-gray-600">${player.lastPlayed ? formatDate(player.lastPlayed) : 'N/A'}</td>
+                                                <td class="px-4 py-2 text-xs">
+                                                    ${Object.entries(player.difficulties).map(([diff, count]) => 
+                                                        `<span class="inline-block bg-gray-200 rounded px-2 py-1 mr-1">${diff}: ${count}</span>`
+                                                    ).join('')}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Recent Games -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">🕐 Recent Games (Last 50)</h2>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left">Date</th>
+                                            <th class="px-4 py-2 text-left">Player</th>
+                                            <th class="px-4 py-2 text-left">Difficulty</th>
+                                            <th class="px-4 py-2 text-left">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${stats.recentGames.map(game => `
+                                            <tr class="border-b hover:bg-gray-50">
+                                                <td class="px-4 py-2 text-sm text-gray-600">${formatDate(game.date)}</td>
+                                                <td class="px-4 py-2 font-semibold">${game.name}</td>
+                                                <td class="px-4 py-2">
+                                                    <span class="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs capitalize">
+                                                        ${game.difficulty}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-2 font-mono text-green-600">${formatTime(game.time)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="text-center text-gray-500 text-sm mt-6">
+                            Last updated: ${new Date().toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLogin() {
+            document.getElementById('root').innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                        <h1 class="text-4xl font-bold text-purple-600 mb-6 text-center">
+                            🔐 Admin Login
+                        </h1>
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder="Enter admin password"
+                            class="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg mb-4"
+                            onkeypress="if(event.key === 'Enter') attemptLogin()"
+                        />
+                        <button
+                            onclick="attemptLogin()"
+                            class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                        >
+                            Login
+                        </button>
+                        <div id="error" class="text-red-500 text-center mt-4 hidden"></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('password').focus();
+        }
+
+        function attemptLogin() {
+            const password = document.getElementById('password').value;
+            if (password === ADMIN_PASSWORD) {
+                isAuthenticated = true;
+                loadAllData();
+            } else {
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = 'Incorrect password';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            isAuthenticated = false;
+            renderLogin();
+        }
+
+        // Initialize
+        renderLogin();
+    </script>
+</body>
+</html>
