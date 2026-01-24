@@ -90,59 +90,36 @@
             }
         };
 
-        const GAME_VERSION = '6.1.0';
-        const LAST_UPDATED = 'January 25, 2026 - Admin Dashboard';
+        const GAME_VERSION = '6.2.0';
+        const LAST_UPDATED = 'January 25, 2026 - Smart Emoji Selection';
 
-        const emojiPairs = [
-          // Similar smiling faces - extremely tricky!
+        // Easy & Normal - All pairs including color differences
+        const easyNormalPairs = [
+          // Similar smiling faces
           ['😀', '😃'], ['😃', '😄'], ['😄', '😁'], ['😁', '😀'],
           ['😊', '☺️'], ['☺️', '🙂'], ['🙂', '😊'], 
           
-          // Neutral/serious faces - very subtle
+          // Neutral/serious faces
           ['😐', '😑'], ['😑', '😶'], ['😶', '🤐'], ['🤐', '😐'],
           
           // Confused/thinking faces
           ['🤔', '🤨'], ['🤨', '🧐'], ['🧐', '🤓'], ['🤓', '😎'], ['😎', '🤔'],
           
-          // Upside down and variations
+          // Upside down
           ['🙂', '🙃'], ['🙃', '🙂'],
           
-          // Colored hearts - COLOR is the only difference!
+          // Colored hearts - EASY because color is obvious
           ['💛', '💚'], ['💚', '💙'], ['💙', '💜'], ['💜', '🧡'], ['🧡', '❤️'],
           ['❤️', '💛'], ['💖', '💗'], ['💗', '💕'], ['💕', '💓'], ['💓', '💖'],
           ['🩷', '🩵'], ['🩵', '🤍'], ['🤍', '🖤'], ['🖤', '🩷'],
           
-          // Star variations - very similar
-          ['⭐', '🌟'], ['🌟', '✨'], ['✨', '💫'], ['💫', '⭐'],
-          
-          // Moon phases
-          ['🌕', '🌝'], ['🌝', '🌚'], ['🌚', '🌑'], 
-          ['🌙', '🌛'], ['🌛', '🌜'], ['🌜', '🌙'],
-          
-          // Sun variations
-          ['☀️', '🌞'], ['🌞', '🌤️'], ['🌤️', '⛅'], ['⛅', '🌥️'], ['🌥️', '☀️'],
-          
-          // Geometric shapes - same shape, different colors
+          // Geometric shapes - EASY because color is obvious
           ['🔴', '🟠'], ['🟠', '🟡'], ['🟡', '🟢'], ['🟢', '🔵'], ['🔵', '🟣'],
           ['🟣', '🟤'], ['🟤', '⚫'], ['⚫', '⚪'], ['⚪', '🔴'],
           
-          // Squares - color variations
+          // Squares - EASY because color is obvious
           ['🟥', '🟧'], ['🟧', '🟨'], ['🟨', '🟩'], ['🟩', '🟦'], ['🟦', '🟪'],
           ['🟪', '🟫'], ['🟫', '⬛'], ['⬛', '⬜'], ['⬜', '🟥'],
-          
-          // Diamond shapes
-          ['🔶', '🔸'], ['🔸', '🔷'], ['🔷', '🔹'], ['🔹', '🔶'],
-          ['🧡', '🔶'], ['🔷', '💙'],
-          
-          // Small geometric shapes
-          ['◾', '◼️'], ['◼️', '⬛'], ['⬛', '▪️'], ['▪️', '◾'],
-          ['◽', '◻️'], ['◻️', '⬜'], ['⬜', '▫️'], ['▫️', '◽'],
-          
-          // Circles and dots
-          ['🔘', '⚫'], ['⚫', '⚪'], ['⚪', '⭕'], ['⭕', '🔴'], ['🔴', '🔘'],
-          
-          // Boxes
-          ['🔳', '◻️'], ['◻️', '⬜'], ['🔲', '◼️'], ['◼️', '⬛'],
           
           // Slightly different smiles
           ['😏', '😒'], ['😒', '🙄'], ['🙄', '😏'],
@@ -185,10 +162,89 @@
           ['🤗', '🤭'], ['🤭', '🤗'],
           
           // Additional subtle differences
+          ['😇', '😊'], ['😊', '😉'], ['😉', '😇']
+        ];
+
+        // Hard & Insane - NO color-only differences, only shape/expression variations
+        const hardInsanePairs = [
+          // Similar smiling faces - extremely tricky!
+          ['😀', '😃'], ['😃', '😄'], ['😄', '😁'], ['😁', '😀'],
+          ['😊', '☺️'], ['☺️', '🙂'], ['🙂', '😊'], 
+          
+          // Neutral/serious faces - very subtle
+          ['😐', '😑'], ['😑', '😶'], ['😶', '🤐'], ['🤐', '😐'],
+          
+          // Confused/thinking faces
+          ['🤔', '🤨'], ['🤨', '🧐'], ['🧐', '🤓'], ['🤓', '😎'], ['😎', '🤔'],
+          
+          // Upside down and variations
+          ['🙂', '🙃'], ['🙃', '🙂'],
+          
+          // Star variations - very similar (shape, not just color)
+          ['⭐', '🌟'], ['🌟', '✨'], ['✨', '💫'], ['💫', '⭐'],
+          
+          // Moon phases - shape differences
+          ['🌕', '🌝'], ['🌝', '🌚'], ['🌚', '🌑'], 
+          ['🌙', '🌛'], ['🌛', '🌜'], ['🌜', '🌙'],
+          
+          // Sun variations - shape differences
+          ['☀️', '🌞'], ['🌞', '🌤️'], ['🌤️', '⛅'], ['⛅', '🌥️'], ['🌥️', '☀️'],
+          
+          // Small geometric shapes - black/white variations (not just color)
+          ['◾', '◼️'], ['◼️', '⬛'], ['⬛', '▪️'], ['▪️', '◾'],
+          ['◽', '◻️'], ['◻️', '⬜'], ['⬜', '▫️'], ['▫️', '◽'],
+          
+          // Circles and dots - only same-color style differences (removed black/white contrast)
+          ['🔘', '⚫'], ['⚪', '⭕'],
+          
+          // Boxes - subtle differences
+          ['🔳', '◻️'], ['◻️', '⬜'], ['🔲', '◼️'], ['◼️', '⬛'],
+          
+          // Slightly different smiles
+          ['😏', '😒'], ['😒', '🙄'], ['🙄', '😏'],
+          ['😬', '😁'], ['😁', '😆'], ['😆', '😅'], ['😅', '😂'], ['😂', '🤣'],
+          
+          // Sleepy faces
+          ['😴', '😪'], ['😪', '🥱'], ['🥱', '😮'], ['😮', '😯'], ['😯', '😲'],
+          
+          // Surprised/concerned
+          ['😳', '😦'], ['😦', '😧'], ['😧', '😨'], ['😨', '😰'], ['😰', '😳'],
+          
+          // Quiet/secret faces
+          ['🤐', '🤫'], ['🤫', '🤭'], ['🤭', '🤥'], ['🤥', '🤐'],
+          
+          // Sad faces
+          ['😢', '😥'], ['😥', '😭'], ['😭', '😢'],
+          ['🙁', '☹️'], ['☹️', '😕'], ['😕', '😟'], ['😟', '🙁'],
+          
+          // Angry faces
+          ['😤', '😠'], ['😠', '😡'], ['😡', '🤬'], ['🤬', '😤'],
+          
+          // Love faces
+          ['😗', '😙'], ['😙', '😚'], ['😚', '😘'], ['😘', '😗'],
+          ['🥰', '😍'], ['😍', '🤩'], ['🤩', '🥰'],
+          
+          // Playful faces
+          ['😝', '😛'], ['😛', '😜'], ['😜', '😋'], ['😋', '😝'],
+          ['🤪', '😜'], ['😜', '🤪'],
+          
+          // Cool/smart faces
+          ['🤓', '😎'], ['😎', '🧐'], ['🧐', '🤓'],
+          
+          // Hot/cold - facial expression difference, not just color
+          ['🥵', '🥶'], ['🥶', '🥵'],
+          
+          // Extreme reactions
+          ['🤯', '😱'], ['😱', '😨'], ['😨', '🤯'],
+          
+          // Friendly gestures
+          ['🤗', '🤭'], ['🤭', '🤗'],
+          
+          // Additional subtle differences
           ['😇', '😊'], ['😊', '😉'], ['😉', '😇'],
           ['🌈', '🌅'], ['🌅', '🌆'], ['🌆', '🌈'],
           
-          // Energy symbols
+          // Energy symbols - shape differences
           ['⚡', '💥'], ['💥', '💢'], ['💢', '🔥'], ['🔥', '⚡'],
           ['💤', '💨'], ['💨', '💦'], ['💦', '💧'], ['💧', '🫧'], ['🫧', '💤'],
           
@@ -418,7 +474,9 @@
           };
 
           const startGame = () => {
-            const pair = emojiPairs[Math.floor(Math.random() * emojiPairs.length)];
+            // Select emoji set based on difficulty
+            const emojiSet = (difficulty === 'hard' || difficulty === 'insane') ? hardInsanePairs : easyNormalPairs;
+            const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
             const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
             
             const gridSize = DIFFICULTY_CONFIG[difficulty].gridSize;
@@ -435,7 +493,9 @@
 
           const startGameFromWelcome = () => {
             setShowWelcome(false);
-            const pair = emojiPairs[Math.floor(Math.random() * emojiPairs.length)];
+            // Select emoji set based on difficulty
+            const emojiSet = (difficulty === 'hard' || difficulty === 'insane') ? hardInsanePairs : easyNormalPairs;
+            const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
             const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
             
             const gridSize = DIFFICULTY_CONFIG[difficulty].gridSize;
@@ -915,7 +975,9 @@
                             setDifficulty(key);
                             setShowDifficultySelect(false);
                             // Start game immediately with selected difficulty
-                            const pair = emojiPairs[Math.floor(Math.random() * emojiPairs.length)];
+                            // Select emoji set based on difficulty
+                            const emojiSet = (key === 'hard' || key === 'insane') ? hardInsanePairs : easyNormalPairs;
+                            const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
                             const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
                             
                             const gridSize = config.gridSize;
