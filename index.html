@@ -98,8 +98,8 @@
             }
         };
 
-        const GAME_VERSION = '6.2.4';
-        const LAST_UPDATED = 'January 25, 2026 - Responsive Insane Mode';
+        const GAME_VERSION = '6.2.6';
+        const LAST_UPDATED = 'January 25, 2026 - Mobile Header Cleanup';
 
         // Easy & Normal - All pairs including color differences
         const easyNormalPairs = [
@@ -1028,30 +1028,34 @@
               )}
 
               <div className="max-w-6xl mx-auto">
-                <div className="flex justify-between items-center mb-4">
-                  <h1 className="text-3xl sm:text-5xl font-black text-white drop-shadow-lg" style={{ fontFamily: '"Comic Sans MS", "Marker Felt", "Chalkboard SE", fantasy', textShadow: '3px 3px 0px rgba(0,0,0,0.3), -1px -1px 0px rgba(255,255,255,0.3)' }}>
+                <div className="space-y-3 mb-4">
+                  {/* Line 1: Title - fits on one line on mobile */}
+                  <h1 className="text-xl sm:text-5xl font-black text-white drop-shadow-lg text-center sm:text-left" style={{ fontFamily: '"Comic Sans MS", "Marker Felt", "Chalkboard SE", fantasy', textShadow: '3px 3px 0px rgba(0,0,0,0.3), -1px -1px 0px rgba(255,255,255,0.3)' }}>
                     🔍 Charlie & Isla - Odd One Out 🔍
                   </h1>
-                  <div className="flex items-center gap-2">
+                  
+                  {/* Line 2: Menu and Username */}
+                  <div className="flex items-center justify-center sm:justify-end gap-2">
                     <button
                       onClick={() => setShowWelcome(true)}
                       className="bg-white bg-opacity-20 backdrop-blur-sm text-white px-4 py-2 rounded-full hover:bg-opacity-30 transition-all font-semibold text-sm"
                     >
                       ⚙️ Menu
                     </button>
-                    <div className="text-xl sm:text-2xl font-bold text-white bg-white bg-opacity-20 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-full">
+                    <div className="text-sm sm:text-2xl font-bold text-white bg-white bg-opacity-20 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-full">
                       👤 {currentUser?.name}
                     </div>
                   </div>
                 </div>
-                <p className="text-xl text-white text-center mb-6">Find the different emoji as fast as you can!</p>
+                <p className="text-lg sm:text-xl text-white text-center mb-6">Find the different emoji as fast as you can!</p>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                   <div className="lg:col-span-2">
                     <div className="bg-white rounded-2xl p-6 shadow-2xl">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-                        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                          <div className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-purple-600 min-w-[100px]">
+                      <div className="space-y-3 mb-4">
+                        {/* Line 1: Timer and Difficulty */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-purple-600">
                             <ClockIcon />
                             <span className="font-mono">{formatTime(currentTime)}</span>
                           </div>
@@ -1061,26 +1065,28 @@
                             </span>
                           </div>
                         </div>
-                        <div className="flex gap-2 flex-wrap">
+                        
+                        {/* Line 2: Action Buttons with Text */}
+                        <div className="grid grid-cols-3 gap-2">
                           <button
                             onClick={() => setShowDifficultySelect(true)}
-                            className="flex items-center gap-1 sm:gap-2 bg-purple-500 text-white font-bold py-2 px-3 sm:px-4 rounded-full hover:scale-105 transition-transform text-sm sm:text-base whitespace-nowrap"
+                            className="flex items-center justify-center gap-1 bg-purple-500 text-white font-bold py-2 px-2 rounded-full hover:scale-105 transition-transform text-xs sm:text-sm whitespace-nowrap"
                           >
-                            🎚️ <span className="hidden sm:inline">Difficulty</span>
+                            🎚️ <span>Difficulty</span>
                           </button>
                           <button
                             onClick={prepareGame}
-                            className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-2 px-3 sm:px-4 rounded-full hover:scale-105 transition-transform text-sm sm:text-base whitespace-nowrap"
+                            className="flex items-center justify-center gap-1 bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-2 px-2 rounded-full hover:scale-105 transition-transform text-xs sm:text-sm whitespace-nowrap"
                           >
                             <RotateCcwIcon />
-                            <span className="hidden sm:inline">New Game</span>
+                            <span>New Game</span>
                           </button>
                           <button
                             onClick={handleLogout}
-                            className="flex items-center gap-1 sm:gap-2 bg-red-500 text-white font-bold py-2 px-3 sm:px-4 rounded-full hover:scale-105 transition-transform text-sm sm:text-base whitespace-nowrap"
+                            className="flex items-center justify-center gap-1 bg-red-500 text-white font-bold py-2 px-2 rounded-full hover:scale-105 transition-transform text-xs sm:text-sm whitespace-nowrap"
                           >
                             <LogOutIcon />
-                            <span className="hidden sm:inline">Logout</span>
+                            <span>Logout</span>
                           </button>
                         </div>
                       </div>
