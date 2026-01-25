@@ -12,7 +12,7 @@
     <div id="root"></div>
     
     <script>
-        const ADMIN_VERSION = '1.0.1';
+        const ADMIN_VERSION = '1.0.2';
         const ADMIN_PASSWORD = "Oculis1376"; // Change this to your secure password
         
         // Initialize Firebase
@@ -458,9 +458,15 @@
                         />
                         <button
                             onclick="attemptLogin()"
-                            class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                            class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg mb-3"
                         >
                             Login
+                        </button>
+                        <button
+                            onclick="window.close(); if(!window.closed) window.history.back();"
+                            class="w-full bg-gray-500 text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                            ← Back to Game
                         </button>
                         <div id="error" class="text-red-500 text-center mt-4 hidden"></div>
                     </div>
