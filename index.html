@@ -98,8 +98,8 @@
             }
         };
 
-        const GAME_VERSION = '6.2.8';
-        const LAST_UPDATED = 'January 25, 2026 - Leaderboard Difficulty Fix';
+        const GAME_VERSION = '6.3.2';
+        const LAST_UPDATED = 'January 26, 2026 - My Bests Difficulty Selector';
 
         // Easy & Normal - All pairs including color differences
         const easyNormalPairs = [
@@ -308,6 +308,9 @@
           const [difficulty, setDifficulty] = useState('easy');
           const [showDifficultySelect, setShowDifficultySelect] = useState(false);
           const [showWelcome, setShowWelcome] = useState(true);
+          const [showCompletionModal, setShowCompletionModal] = useState(false);
+          const [completionData, setCompletionData] = useState({ time: 0, bestTime: 0, emoji: '' });
+          const [allDifficultyBests, setAllDifficultyBests] = useState(null);
 
           const DIFFICULTY_CONFIG = {
             easy: { gridSize: 6, name: 'Easy', emoji: '😊' },
@@ -336,6 +339,14 @@
           useEffect(() => {
             loadLeaderboard();
           }, [difficulty]);
+
+          useEffect(() => {
+            if (activeTab === 'personal' && currentUser) {
+              calculatePersonalBests().then(bests => {
+                setAllDifficultyBests(bests);
+              });
+            }
+          }, [activeTab, currentUser]);
 
           useEffect(() => {
             let interval;
@@ -585,14 +596,16 @@
             setLeaderboard(updatedLeaderboard);
             await saveLeaderboard(updatedLeaderboard);
             
-            if (bestPosition <= 10) {
-              const positionEmoji = bestPosition === 1 ? '🥇' : bestPosition === 2 ? '🥈' : bestPosition === 3 ? '🥉' : '🏆';
-              alert(`${positionEmoji} Well done! Your time was ${formatTime(finalTime)}. Your best time so far on this level is ${formatTime(userEntries[0].time)}. Try again to beat your best!`);
-            } else {
-              alert(`Well done! Your time was ${formatTime(finalTime)}. Your best time so far on this level is ${formatTime(userEntries[0].time)}. Try again to beat your best!`);
-            }
+            const positionEmoji = bestPosition <= 10 
+              ? (bestPosition === 1 ? '🥇' : bestPosition === 2 ? '🥈' : bestPosition === 3 ? '🥉' : '🏆')
+              : '';
             
-            prepareGame();
+            setCompletionData({
+              time: finalTime,
+              bestTime: userEntries[0].time,
+              emoji: positionEmoji
+            });
+            setShowCompletionModal(true);
           };
 
           const handleGuestNameSubmit = async () => {
@@ -639,16 +652,19 @@
             setLeaderboard(updatedLeaderboard);
             await saveLeaderboard(updatedLeaderboard);
             
-            if (bestPosition <= 10) {
-              const positionEmoji = bestPosition === 1 ? '🥇' : bestPosition === 2 ? '🥈' : bestPosition === 3 ? '🥉' : '🏆';
-              alert(`${positionEmoji} Well done! Your time was ${formatTime(finalTime)}. Your best time so far on this level is ${formatTime(userEntries[0].time)}. Try again to beat your best!`);
-            } else {
-              alert(`Well done! Your time was ${formatTime(finalTime)}. Your best time so far on this level is ${formatTime(userEntries[0].time)}. Try again to beat your best!`);
-            }
+            const positionEmoji = bestPosition <= 10 
+              ? (bestPosition === 1 ? '🥇' : bestPosition === 2 ? '🥈' : bestPosition === 3 ? '🥉' : '🏆')
+              : '';
+            
+            setCompletionData({
+              time: finalTime,
+              bestTime: userEntries[0].time,
+              emoji: positionEmoji
+            });
+            setShowCompletionModal(true);
             
             setGuestNameInput('');
             setPendingScore(null);
-            prepareGame();
           };
 
           const formatTime = (ms) => {
@@ -705,18 +721,18 @@
             };
           };
 
-          const calculatePersonalBests = () => {
+          const calculatePersonalBests = async () => {
             if (!currentUser) return null;
             
             const difficulties = ['easy', 'medium', 'hard', 'insane'];
             const personalBests = {};
             
-            difficulties.forEach(diff => {
+            for (const diff of difficulties) {
               try {
-                const key = `charlie-isla-leaderboard-v2-${diff}`;
-                const result = localStorage.getItem(key);
+                const key = `charlie-isla-leaderboard-${diff}-v2`;
+                const result = await storage.get(key, true);
                 if (result) {
-                  const entries = JSON.parse(result);
+                  const entries = JSON.parse(result.value);
                   const userEntries = entries.filter(e => e.name === currentUser.name);
                   if (userEntries.length > 0) {
                     const bestTime = Math.min(...userEntries.map(e => e.time));
@@ -727,7 +743,7 @@
               } catch (e) {
                 console.error(`Error loading ${diff} stats:`, e);
               }
-            });
+            }
             
             return Object.keys(personalBests).length > 0 ? personalBests : null;
           };
@@ -978,6 +994,38 @@
                 </div>
               )}
 
+              {showCompletionModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                    <h2 className="text-4xl font-bold text-purple-600 mb-6 text-center">
+                      {completionData.emoji ? completionData.emoji : '🎉'} Well Done!
+                    </h2>
+                    <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 mb-6">
+                      <div className="text-center mb-4">
+                        <p className="text-gray-600 text-sm mb-1">Your Time</p>
+                        <p className="text-4xl font-bold text-purple-600 font-mono">{formatTime(completionData.time)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-gray-600 text-sm mb-1">Your Best Time on This Level</p>
+                        <p className="text-2xl font-bold text-green-600 font-mono">{formatTime(completionData.bestTime)}</p>
+                      </div>
+                    </div>
+                    <p className="text-center text-gray-600 mb-6">
+                      Try again to beat your best!
+                    </p>
+                    <button
+                      onClick={() => {
+                        setShowCompletionModal(false);
+                        prepareGame();
+                      }}
+                      className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white text-xl font-bold py-4 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                    >
+                      🎮 Play Again
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {showDifficultySelect && (
                 <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
@@ -988,32 +1036,11 @@
                       {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
                         <button
                           key={key}
-                          onClick={() => {
-                            setDifficulty(key);
-                            setShowDifficultySelect(false);
-                            // Start game immediately with selected difficulty
-                            // Select emoji set based on difficulty
-                            const emojiSet = (key === 'hard' || key === 'insane') ? hardInsanePairs : easyNormalPairs;
-                            const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
-                            const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
-                            
-                            const gridSize = config.gridSize;
-                            const totalCells = gridSize * gridSize;
-                            const newGrid = Array(totalCells).fill(normal);
-                            const randomOddIndex = Math.floor(Math.random() * totalCells);
-                            newGrid[randomOddIndex] = odd;
-                            
-                            setGrid(newGrid);
-                            setOddIndex(randomOddIndex);
-                            setGameActive(true);
-                            setGameReady(true);
-                            setStartTime(Date.now());
-                            setCurrentTime(0);
-                          }}
+                          onClick={() => setDifficulty(key)}
                           className={`p-4 rounded-lg font-bold transition-all text-left ${
                             difficulty === key
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:scale-105'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
+                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-102'
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -1021,16 +1048,50 @@
                               <div className="text-2xl mb-1">{config.emoji} {config.name}</div>
                               <div className="text-sm opacity-75">Grid: {config.gridSize}x{config.gridSize} ({config.gridSize * config.gridSize} cells)</div>
                             </div>
-                            {difficulty === key && <div className="text-2xl">✓</div>}
+                            {difficulty === key && (
+                              <div className="bg-white bg-opacity-30 px-3 py-1 rounded-full text-sm">
+                                Selected
+                              </div>
+                            )}
                           </div>
                         </button>
                       ))}
                     </div>
+                    
+                    {/* Green Go Button */}
+                    <button
+                      onClick={() => {
+                        setShowDifficultySelect(false);
+                        // Start game with selected difficulty
+                        const emojiSet = (difficulty === 'hard' || difficulty === 'insane') ? hardInsanePairs : easyNormalPairs;
+                        const pair = emojiSet[Math.floor(Math.random() * emojiSet.length)];
+                        const [normal, odd] = Math.random() > 0.5 ? pair : [pair[1], pair[0]];
+                        
+                        const config = DIFFICULTY_CONFIG[difficulty];
+                        const gridSize = config.gridSize;
+                        const totalCells = gridSize * gridSize;
+                        const newGrid = Array(totalCells).fill(normal);
+                        const randomOddIndex = Math.floor(Math.random() * totalCells);
+                        newGrid[randomOddIndex] = odd;
+                        
+                        setGrid(newGrid);
+                        setOddIndex(randomOddIndex);
+                        setGameActive(true);
+                        setGameReady(true);
+                        setStartTime(Date.now());
+                        setCurrentTime(0);
+                      }}
+                      className="w-full bg-gradient-to-r from-green-400 to-green-600 text-white text-xl font-bold py-4 rounded-lg hover:scale-105 transition-transform shadow-lg mb-3"
+                    >
+                      🎮 Go!
+                    </button>
+                    
+                    {/* Smaller Cancel Button */}
                     <button
                       onClick={() => setShowDifficultySelect(false)}
-                      className="w-full bg-gray-500 text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-600 transition-colors"
+                      className="w-full bg-gray-400 text-white text-sm font-semibold py-2 rounded-lg hover:bg-gray-500 transition-colors"
                     >
-                      Close
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -1202,19 +1263,6 @@
                           }`}
                         >
                           <div className="flex flex-col items-center gap-1">
-                            <span className="text-lg">📊</span>
-                            <span className="hidden sm:inline text-xs">My Stats</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('global')}
-                          className={`flex-1 min-w-[70px] px-2 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
-                            activeTab === 'global' 
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex flex-col items-center gap-1">
                             <span className="text-lg">🏅</span>
                             <span className="hidden sm:inline text-xs">My Bests</span>
                           </div>
@@ -1292,23 +1340,52 @@
                       if (!stats) {
                         return <p className="text-gray-500 text-center py-8">Play some games to see your stats!</p>;
                       }
+                      
                       return (
-                        <div className="space-y-4 max-h-96 overflow-y-auto">
-                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
-                            <div className="text-sm text-gray-600 mb-1">Best Time</div>
-                            <div className="text-3xl font-bold text-purple-600">{formatTime(stats.bestTime)}</div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-blue-50 p-3 rounded-lg">
-                              <div className="text-xs text-gray-600 mb-1">Average Time</div>
-                              <div className="text-xl font-bold text-blue-600">{formatTime(stats.averageTime)}</div>
+                        <>
+                          {/* Difficulty Selector */}
+                          <div className="mb-3 text-center">
+                            <div className="inline-block relative group">
+                              <button className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full text-sm font-semibold text-purple-700 hover:from-purple-200 hover:to-pink-200 transition-all cursor-pointer">
+                                {DIFFICULTY_CONFIG[difficulty].emoji} {DIFFICULTY_CONFIG[difficulty].name} Mode
+                                <span className="text-xs opacity-60">▼</span>
+                              </button>
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white rounded-lg shadow-xl border-2 border-purple-200 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[140px]">
+                                {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
+                                  <button
+                                    key={key}
+                                    onClick={() => setDifficulty(key)}
+                                    className={`w-full px-4 py-2 text-left hover:bg-purple-50 transition-colors ${
+                                      difficulty === key ? 'bg-purple-100 font-bold' : ''
+                                    }`}
+                                  >
+                                    {config.emoji} {config.name}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <div className="bg-green-50 p-3 rounded-lg">
-                              <div className="text-xs text-gray-600 mb-1">Games Played</div>
-                              <div className="text-xl font-bold text-green-600">{stats.totalGames}</div>
-                            </div>
                           </div>
+
+                          <div className="space-y-4 max-h-96 overflow-y-auto">
+                            {/* Overall Stats for Current Difficulty */}
+                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
+                              <div className="text-sm font-semibold text-purple-700 mb-2">
+                                {DIFFICULTY_CONFIG[difficulty].emoji} {DIFFICULTY_CONFIG[difficulty].name} Mode Stats
+                              </div>
+                              <div className="text-sm text-gray-600 mb-1">Best Time</div>
+                              <div className="text-3xl font-bold text-purple-600">{formatTime(stats.bestTime)}</div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-blue-50 p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Average Time</div>
+                                <div className="text-xl font-bold text-blue-600">{formatTime(stats.averageTime)}</div>
+                              </div>
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Games Played</div>
+                                <div className="text-xl font-bold text-green-600">{stats.totalGames}</div>
+                              </div>
+                            </div>
 
                           <div className="bg-orange-50 p-4 rounded-lg">
                             <div className="text-sm text-gray-600 mb-1">Improvement</div>
@@ -1328,97 +1405,96 @@
                               <div className="text-xl font-bold text-yellow-600">{stats.bestStreak} ⚡</div>
                             </div>
                           </div>
+
+                          {/* Per-Difficulty Bests */}
+                          {allDifficultyBests && Object.keys(allDifficultyBests).length > 0 && (
+                            <>
+                              <div className="border-t pt-4 mt-4">
+                                <p className="text-sm font-semibold text-gray-700 mb-3">🏅 Your Best Times by Difficulty</p>
+                              </div>
+                              
+                              {allDifficultyBests.easy && (
+                                <div className="bg-gradient-to-r from-green-50 to-green-100 p-3 rounded-lg border-2 border-green-200">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <div className="text-xs font-semibold text-green-700 mb-1">
+                                        {DIFFICULTY_CONFIG.easy.emoji} Easy
+                                      </div>
+                                      <div className="text-xl font-bold text-green-600">
+                                        {formatTime(allDifficultyBests.easy.bestTime)}
+                                      </div>
+                                      <div className="text-xs text-green-600 mt-1">
+                                        {allDifficultyBests.easy.gamesPlayed} game{allDifficultyBests.easy.gamesPlayed !== 1 ? 's' : ''}
+                                      </div>
+                                    </div>
+                                    <div className="text-2xl">🏆</div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {allDifficultyBests.medium && (
+                                <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-3 rounded-lg border-2 border-yellow-200">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <div className="text-xs font-semibold text-yellow-700 mb-1">
+                                        {DIFFICULTY_CONFIG.medium.emoji} Normal
+                                      </div>
+                                      <div className="text-xl font-bold text-yellow-600">
+                                        {formatTime(allDifficultyBests.medium.bestTime)}
+                                      </div>
+                                      <div className="text-xs text-yellow-600 mt-1">
+                                        {allDifficultyBests.medium.gamesPlayed} game{allDifficultyBests.medium.gamesPlayed !== 1 ? 's' : ''}
+                                      </div>
+                                    </div>
+                                    <div className="text-2xl">🏆</div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {allDifficultyBests.hard && (
+                                <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-3 rounded-lg border-2 border-orange-200">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <div className="text-xs font-semibold text-orange-700 mb-1">
+                                        {DIFFICULTY_CONFIG.hard.emoji} Hard
+                                      </div>
+                                      <div className="text-xl font-bold text-orange-600">
+                                        {formatTime(allDifficultyBests.hard.bestTime)}
+                                      </div>
+                                      <div className="text-xs text-orange-600 mt-1">
+                                        {allDifficultyBests.hard.gamesPlayed} game{allDifficultyBests.hard.gamesPlayed !== 1 ? 's' : ''}
+                                      </div>
+                                    </div>
+                                    <div className="text-2xl">🏆</div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {allDifficultyBests.insane && (
+                                <div className="bg-gradient-to-r from-red-50 to-red-100 p-3 rounded-lg border-2 border-red-200">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <div className="text-xs font-semibold text-red-700 mb-1">
+                                        {DIFFICULTY_CONFIG.insane.emoji} Insane
+                                      </div>
+                                      <div className="text-xl font-bold text-red-600">
+                                        {formatTime(allDifficultyBests.insane.bestTime)}
+                                      </div>
+                                      <div className="text-xs text-red-600 mt-1">
+                                        {allDifficultyBests.insane.gamesPlayed} game{allDifficultyBests.insane.gamesPlayed !== 1 ? 's' : ''}
+                                      </div>
+                                    </div>
+                                    <div className="text-2xl">🏆</div>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
+                        </>
                       );
                     })()}
 
-                    {activeTab === 'global' && (() => {
-                      const personalBests = calculatePersonalBests();
-                      if (!personalBests) {
-                        return <p className="text-gray-500 text-center py-8">Play games to see your personal bests!</p>;
-                      }
-                      return (
-                        <div className="space-y-3">
-                          <p className="text-xs text-gray-500 text-center mb-3">Your best times across all difficulties</p>
-                          
-                          {personalBests.easy && (
-                            <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border-2 border-green-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-green-700 mb-1">
-                                    {DIFFICULTY_CONFIG.easy.emoji} Easy
-                                  </div>
-                                  <div className="text-2xl font-bold text-green-600">
-                                    {formatTime(personalBests.easy.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-green-600 mt-1">
-                                    {personalBests.easy.gamesPlayed} game{personalBests.easy.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {personalBests.medium && (
-                            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-lg border-2 border-yellow-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-yellow-700 mb-1">
-                                    {DIFFICULTY_CONFIG.medium.emoji} Normal
-                                  </div>
-                                  <div className="text-2xl font-bold text-yellow-600">
-                                    {formatTime(personalBests.medium.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-yellow-600 mt-1">
-                                    {personalBests.medium.gamesPlayed} game{personalBests.medium.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {personalBests.hard && (
-                            <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg border-2 border-orange-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-orange-700 mb-1">
-                                    {DIFFICULTY_CONFIG.hard.emoji} Hard
-                                  </div>
-                                  <div className="text-2xl font-bold text-orange-600">
-                                    {formatTime(personalBests.hard.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-orange-600 mt-1">
-                                    {personalBests.hard.gamesPlayed} game{personalBests.hard.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {personalBests.insane && (
-                            <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border-2 border-red-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-sm font-semibold text-red-700 mb-1">
-                                    {DIFFICULTY_CONFIG.insane.emoji} Insane
-                                  </div>
-                                  <div className="text-2xl font-bold text-red-600">
-                                    {formatTime(personalBests.insane.bestTime)}
-                                  </div>
-                                  <div className="text-xs text-red-600 mt-1">
-                                    {personalBests.insane.gamesPlayed} game{personalBests.insane.gamesPlayed !== 1 ? 's' : ''} played
-                                  </div>
-                                </div>
-                                <div className="text-3xl">🏆</div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
 
                     {activeTab === 'recent' && (() => {
                       const stats = calculateUserStats();
