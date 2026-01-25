@@ -98,8 +98,8 @@
             }
         };
 
-        const GAME_VERSION = '6.3.2';
-        const LAST_UPDATED = 'January 26, 2026 - My Bests Difficulty Selector';
+        const GAME_VERSION = '6.3.3';
+        const LAST_UPDATED = 'January 26, 2026 - Improved Login Page';
 
         // Easy & Normal - All pairs including color differences
         const easyNormalPairs = [
@@ -808,6 +808,30 @@
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {!isRegistering && (
+                        <>
+                          {/* Registration Info Message */}
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 mb-4">
+                            <div className="text-center">
+                              <p className="text-green-800 font-semibold mb-2">🎯 Create a Free Account</p>
+                              <p className="text-sm text-green-700">
+                                Register to save all your times and track your progress! It's free and only takes a name and password to get started.
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Green Register Button */}
+                          <button
+                            onClick={() => setIsRegistering(true)}
+                            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xl font-bold py-4 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                          >
+                            ✨ Register Now - It's Free!
+                          </button>
+                          
+                          <div className="text-center text-gray-400 text-sm">or</div>
+                        </>
+                      )}
+                      
                       <div>
                         <input
                           type="text"
@@ -839,14 +863,16 @@
                         onClick={handleLogin}
                         className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
                       >
-                        {isRegistering ? 'Register & Start Playing' : 'Login'}
+                        {isRegistering ? 'Register & Start Playing' : 'Login to Your Account'}
                       </button>
-                      <button
-                        onClick={() => setIsRegistering(!isRegistering)}
-                        className="w-full text-purple-600 font-semibold hover:underline"
-                      >
-                        {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
-                      </button>
+                      {isRegistering && (
+                        <button
+                          onClick={() => setIsRegistering(false)}
+                          className="w-full text-purple-600 font-semibold hover:underline"
+                        >
+                          Already have an account? Login
+                        </button>
+                      )}
                       {!isRegistering && (
                         <button
                           onClick={() => {
