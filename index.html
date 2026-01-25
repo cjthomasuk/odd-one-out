@@ -10,6 +10,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        /* Scale emojis only on mobile for insane mode */
+        @media (max-width: 768px) {
+            .insane-emoji-scale {
+                transform: scale(0.75) !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -90,8 +98,8 @@
             }
         };
 
-        const GAME_VERSION = '6.2.3';
-        const LAST_UPDATED = 'January 25, 2026 - Insane Mode Mobile Fix';
+        const GAME_VERSION = '6.2.4';
+        const LAST_UPDATED = 'January 25, 2026 - Responsive Insane Mode';
 
         // Easy & Normal - All pairs including color differences
         const easyNormalPairs = [
@@ -1093,6 +1101,7 @@
                             <button
                               key={index}
                               onClick={() => handleClick(index)}
+                              className={difficulty === 'insane' ? 'insane-emoji-scale' : ''}
                               style={{ 
                                 aspectRatio: '1',
                                 fontSize: difficulty === 'insane' ? '1.0rem' : difficulty === 'hard' ? '1.3rem' : difficulty === 'medium' ? '1.4rem' : '1.6rem',
@@ -1106,7 +1115,6 @@
                                 justifyContent: 'center',
                                 lineHeight: '1',
                                 transition: 'background-color 0.2s',
-                                transform: difficulty === 'insane' ? 'scale(0.75)' : 'scale(1)',
                                 overflow: 'hidden'
                               }}
                               onMouseEnter={(e) => e.target.style.backgroundColor = '#fef08a'}
@@ -1133,6 +1141,7 @@
                           {Array.from({ length: DIFFICULTY_CONFIG[difficulty].gridSize * DIFFICULTY_CONFIG[difficulty].gridSize }).map((_, index) => (
                             <div
                               key={index}
+                              className={difficulty === 'insane' ? 'insane-emoji-scale' : ''}
                               style={{ 
                                 aspectRatio: '1',
                                 fontSize: difficulty === 'insane' ? '1.0rem' : difficulty === 'hard' ? '1.3rem' : difficulty === 'medium' ? '1.4rem' : '1.6rem',
@@ -1146,7 +1155,6 @@
                                 lineHeight: '1',
                                 opacity: '0.3',
                                 color: '#9ca3af',
-                                transform: difficulty === 'insane' ? 'scale(0.75)' : 'scale(1)',
                                 overflow: 'hidden'
                               }}
                             >
