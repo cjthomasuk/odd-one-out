@@ -98,8 +98,8 @@
             }
         };
 
-        const GAME_VERSION = '6.3.3';
-        const LAST_UPDATED = 'January 26, 2026 - Improved Login Page';
+        const GAME_VERSION = '6.3.4';
+        const LAST_UPDATED = 'January 26, 2026 - Cleaner Login Page';
 
         // Easy & Normal - All pairs including color differences
         const easyNormalPairs = [
@@ -761,13 +761,10 @@
                     100% { background-position: 0% 50%; }
                   }
                 `}</style>
-                <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                  <h1 className="text-4xl font-bold text-purple-600 mb-6 text-center">
-                    🔍 Charlie & Isla<br/>Odd One Out 🔍
+                <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-purple-600 mb-6 text-center" style={{ fontFamily: '"Comic Sans MS", "Marker Felt", "Chalkboard SE", fantasy' }}>
+                    🔍 Charlie & Isla - Odd One Out 🔍
                   </h1>
-                  <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">
-                    {isResetting ? 'Reset Password' : isRegistering ? 'Register' : 'Login'}
-                  </h2>
                   
                   {isResetting ? (
                     <div className="space-y-4">
@@ -808,97 +805,119 @@
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* Login Section - Always visible */}
                       {!isRegistering && (
-                        <>
-                          {/* Registration Info Message */}
-                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 mb-4">
-                            <div className="text-center">
-                              <p className="text-green-800 font-semibold mb-2">🎯 Create a Free Account</p>
-                              <p className="text-sm text-green-700">
-                                Register to save all your times and track your progress! It's free and only takes a name and password to get started.
-                              </p>
-                            </div>
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={loginName}
+                            onChange={(e) => setLoginName(e.target.value)}
+                            placeholder="Name"
+                            className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none"
+                            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                            autoFocus
+                          />
+                          <input
+                            type="password"
+                            value={loginPassword}
+                            onChange={(e) => setLoginPassword(e.target.value)}
+                            placeholder="Password"
+                            className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none"
+                            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                          />
+                          <button
+                            onClick={handleLogin}
+                            className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                          >
+                            Login
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsResetting(true);
+                              setLoginName('');
+                              setLoginPassword('');
+                            }}
+                            className="w-full text-gray-500 text-sm hover:underline"
+                          >
+                            Forgot password?
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Registration Section */}
+                      {!isRegistering && (
+                        <div className="pt-4 border-t border-gray-200 space-y-3">
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+                            <p className="text-xs text-center text-green-800">
+                              <strong>Create a free account</strong> to save your times and track progress!
+                            </p>
                           </div>
-                          
-                          {/* Green Register Button */}
                           <button
                             onClick={() => setIsRegistering(true)}
-                            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xl font-bold py-4 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
                           >
-                            ✨ Register Now - It's Free!
+                            Register - It's Free! ✨
                           </button>
-                          
-                          <div className="text-center text-gray-400 text-sm">or</div>
-                        </>
+                        </div>
                       )}
-                      
-                      <div>
-                        <input
-                          type="text"
-                          value={loginName}
-                          onChange={(e) => setLoginName(e.target.value)}
-                          placeholder="Name"
-                          className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg"
-                          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                          autoFocus
-                        />
-                        {isRegistering && (
-                          <p className="text-xs text-gray-500 mt-1 ml-1">⚠️ Remember this - you'll need it to log in!</p>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          type="password"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
-                          placeholder="Password"
-                          className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none text-lg"
-                          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                        />
-                        {isRegistering && (
-                          <p className="text-xs text-gray-500 mt-1 ml-1">⚠️ Remember this - you'll need it to log in!</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleLogin}
-                        className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
-                      >
-                        {isRegistering ? 'Register & Start Playing' : 'Login to Your Account'}
-                      </button>
+
+                      {/* Register Form - when registering */}
                       {isRegistering && (
-                        <button
-                          onClick={() => setIsRegistering(false)}
-                          className="w-full text-purple-600 font-semibold hover:underline"
-                        >
-                          Already have an account? Login
-                        </button>
-                      )}
-                      {!isRegistering && (
-                        <button
-                          onClick={() => {
-                            setIsResetting(true);
-                            setLoginName('');
-                            setLoginPassword('');
-                          }}
-                          className="w-full text-gray-500 text-sm hover:underline"
-                        >
-                          Forgot password? Reset here
-                        </button>
+                        <div className="space-y-3">
+                          <div>
+                            <input
+                              type="text"
+                              value={loginName}
+                              onChange={(e) => setLoginName(e.target.value)}
+                              placeholder="Name"
+                              className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none"
+                              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                              autoFocus
+                            />
+                            <p className="text-xs text-gray-500 mt-1 ml-1">⚠️ Remember this - you'll need it to log in!</p>
+                          </div>
+                          <div>
+                            <input
+                              type="password"
+                              value={loginPassword}
+                              onChange={(e) => setLoginPassword(e.target.value)}
+                              placeholder="Password"
+                              className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 outline-none"
+                              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                            />
+                            <p className="text-xs text-gray-500 mt-1 ml-1">⚠️ Remember this - you'll need it to log in!</p>
+                          </div>
+                          <button
+                            onClick={handleLogin}
+                            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                          >
+                            Register & Start Playing
+                          </button>
+                          <button
+                            onClick={() => setIsRegistering(false)}
+                            className="w-full text-purple-600 font-semibold hover:underline"
+                          >
+                            Already have an account? Login
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
                   
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <button
-                      onClick={() => {
-                        setCurrentUser({ name: 'Guest', isGuest: true });
-                        setShowLogin(false);
-                      }}
-                      className="w-full bg-gradient-to-r from-blue-400 to-cyan-500 text-white text-xl font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
-                    >
-                      Play as Guest 🎮
-                    </button>
-                  </div>
+                  {/* Guest Option - Always at bottom */}
+                  {!isResetting && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => {
+                          setCurrentUser({ name: 'Guest', isGuest: true });
+                          setShowLogin(false);
+                        }}
+                        className="w-full bg-gradient-to-r from-blue-400 to-cyan-500 text-white font-bold py-3 rounded-lg hover:scale-105 transition-transform shadow-lg"
+                      >
+                        Play as Guest 🎮
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
